@@ -1,5 +1,9 @@
 package at.datasciencelabs.pattern;
 
+
+/**
+ * Supports evaluating a set of operators
+ */
 public enum Operator {
     EQUALS(Object::equals),
     NOT_EQUALS(new Evaluator() {

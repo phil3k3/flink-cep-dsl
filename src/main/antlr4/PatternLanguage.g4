@@ -9,7 +9,7 @@ package at.datasciencelabs.pattern.generated;
 startPatternExpressionRule : patternExpression EOF;
 patternExpression : orExpression (followedByRepeat)*;
 orExpression : andExpression (o=OR_EXPR andExpression)*;
-followedByRepeat : f=FOLLOWED_BY orExpression;
+followedByRepeat : f=FOLLOWED_BY? orExpression;
 andExpression :	matchUntilExpression (a=AND_EXPR matchUntilExpression)*;
 matchUntilExpression : qualifyExpression;
 qualifyExpression : (e=EVERY_EXPR | n=NOT_EXPR)? guardPostFix;

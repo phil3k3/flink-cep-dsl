@@ -5,6 +5,9 @@ import org.antlr.v4.runtime.IntStream;
 
 import java.util.Locale;
 
+/**
+ * InputStream for ANTLR which does not care about casing.
+ */
 public class CaseInsensitiveInputStream extends ANTLRInputStream {
     private final char[] la;
 
