@@ -7,16 +7,28 @@ package at.datasciencelabs.pattern.generated;
 
 
 startPatternExpressionRule : patternExpression EOF;
-patternExpression : orExpression (followedByRepeat)*;
+patternExpression : orExpression (followedByOrNextRepeat)*;
 orExpression : andExpression (o=OR_EXPR andExpression)*;
-followedByRepeat : f=FOLLOWED_BY? orExpression;
+followedByOrNextRepeat : followedByRepeat | orExpression;
+followedByRepeat: f=FOLLOWED_BY orExpression;
 andExpression :	matchUntilExpression (a=AND_EXPR matchUntilExpression)*;
 matchUntilExpression : qualifyExpression;
 qualifyExpression : (e=EVERY_EXPR | n=NOT_EXPR)? guardPostFix;
 guardPostFix : patternFilterExpression | l=LPAREN patternExpression RPAREN;
 patternFilterExpression
-    		: (i=IDENT EQUALS)? classIdentifier (LPAREN expressionList? RPAREN)?;
-
+    		: patternFilterExpressionOptional | patternFilterExpressionMandatory;
+patternFilterExpressionMandatory
+    		: (i=IDENT EQUALS)? classIdentifier quantifier? (LPAREN expressionList? RPAREN)?;
+patternFilterExpressionOptional
+    		: (i=IDENT EQUALS)? classIdentifier quantifier? (LPAREN expressionList? RPAREN)? QUESTION;
+quantifier: plus_quantifier | star_quantifier | number_quantifier | number_quantifier_greedy;
+number_quantifier_greedy: s=LCURLY numberconstant upper_bound? t=RCURLY QUESTION;
+number_quantifier: s=LCURLY numberconstant upper_bound? t=RCURLY;
+star_quantifier: r=STAR;
+plus_quantifier: q=PLUS;
+upper_bound: z=COMMA (upper_bound_unlimited | upper_bound_limited);
+upper_bound_limited: numberconstant;
+upper_bound_unlimited: k=PLUS;
 classIdentifier : i1=escapableStr (DOT i2=escapableStr)*;
 escapableStr : i1=IDENT | i2=EVENTS | i3=TICKED_STRING_LITERAL;
 
@@ -57,7 +69,7 @@ evalRelationalExpression : concatenationExpr (
 			)
 			| (n=NOT_EXPR)?
 			(
-				// Represent the optional NOT prefix using the token type by
+				// Represent the greedy NOT prefix using the token type by
 				// testing 'n' and setting the token type accordingly.
 				(in=IN_SET
 					  (l=LPAREN | l=LBRACK) expression	// brackets are for inclusive/exclusive

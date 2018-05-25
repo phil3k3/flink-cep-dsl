@@ -54,6 +54,18 @@ public class PatternLanguageBaseListener implements PatternLanguageListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterFollowedByOrNextRepeat(PatternLanguageParser.FollowedByOrNextRepeatContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFollowedByOrNextRepeat(PatternLanguageParser.FollowedByOrNextRepeatContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterFollowedByRepeat(PatternLanguageParser.FollowedByRepeatContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -121,6 +133,126 @@ public class PatternLanguageBaseListener implements PatternLanguageListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPatternFilterExpressionMandatory(PatternLanguageParser.PatternFilterExpressionMandatoryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPatternFilterExpressionMandatory(PatternLanguageParser.PatternFilterExpressionMandatoryContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterQuantifier(PatternLanguageParser.QuantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitQuantifier(PatternLanguageParser.QuantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterUpper_bound(PatternLanguageParser.Upper_boundContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUpper_bound(PatternLanguageParser.Upper_boundContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterUpper_bound_limited(PatternLanguageParser.Upper_bound_limitedContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUpper_bound_limited(PatternLanguageParser.Upper_bound_limitedContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

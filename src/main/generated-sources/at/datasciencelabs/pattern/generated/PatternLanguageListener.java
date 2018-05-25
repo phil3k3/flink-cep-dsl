@@ -40,6 +40,16 @@ public interface PatternLanguageListener extends ParseTreeListener {
 	 */
 	void exitOrExpression(PatternLanguageParser.OrExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#followedByOrNextRepeat}.
+	 * @param ctx the parse tree
+	 */
+	void enterFollowedByOrNextRepeat(PatternLanguageParser.FollowedByOrNextRepeatContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#followedByOrNextRepeat}.
+	 * @param ctx the parse tree
+	 */
+	void exitFollowedByOrNextRepeat(PatternLanguageParser.FollowedByOrNextRepeatContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link PatternLanguageParser#followedByRepeat}.
 	 * @param ctx the parse tree
 	 */
@@ -99,6 +109,106 @@ public interface PatternLanguageListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#patternFilterExpressionMandatory}.
+	 * @param ctx the parse tree
+	 */
+	void enterPatternFilterExpressionMandatory(PatternLanguageParser.PatternFilterExpressionMandatoryContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#patternFilterExpressionMandatory}.
+	 * @param ctx the parse tree
+	 */
+	void exitPatternFilterExpressionMandatory(PatternLanguageParser.PatternFilterExpressionMandatoryContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#patternFilterExpressionOptional}.
+	 * @param ctx the parse tree
+	 */
+	void enterPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#patternFilterExpressionOptional}.
+	 * @param ctx the parse tree
+	 */
+	void exitPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterQuantifier(PatternLanguageParser.QuantifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitQuantifier(PatternLanguageParser.QuantifierContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#number_quantifier_greedy}.
+	 * @param ctx the parse tree
+	 */
+	void enterNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#number_quantifier_greedy}.
+	 * @param ctx the parse tree
+	 */
+	void exitNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#number_quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#number_quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#star_quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#star_quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#plus_quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#plus_quantifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#upper_bound}.
+	 * @param ctx the parse tree
+	 */
+	void enterUpper_bound(PatternLanguageParser.Upper_boundContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#upper_bound}.
+	 * @param ctx the parse tree
+	 */
+	void exitUpper_bound(PatternLanguageParser.Upper_boundContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#upper_bound_limited}.
+	 * @param ctx the parse tree
+	 */
+	void enterUpper_bound_limited(PatternLanguageParser.Upper_bound_limitedContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#upper_bound_limited}.
+	 * @param ctx the parse tree
+	 */
+	void exitUpper_bound_limited(PatternLanguageParser.Upper_bound_limitedContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link PatternLanguageParser#upper_bound_unlimited}.
+	 * @param ctx the parse tree
+	 */
+	void enterUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link PatternLanguageParser#upper_bound_unlimited}.
+	 * @param ctx the parse tree
+	 */
+	void exitUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link PatternLanguageParser#classIdentifier}.
 	 * @param ctx the parse tree

@@ -43,7 +43,6 @@ public class PatternLanguageConcreteListener extends PatternLanguageBaseListener
             else {
                 pattern = pattern.next(ctx.getText());
             }
-
         }
     }
 

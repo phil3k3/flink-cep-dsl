@@ -13,6 +13,9 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private Expression expression;
     private ExpressionList expressionList;
     private boolean isFollowedBy;
+    private boolean isQuantifier;
+    private Quantifier.Builder quantifierBuilder;
+    private boolean isOptionalQuantifier;
 
     public FlinkCepPatternLanguageListener() {
     }
@@ -41,7 +44,6 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
             else {
                 pattern = pattern.next(ctx.getText());
             }
-
         }
     }
 
@@ -162,12 +164,90 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitNumberconstant(PatternLanguageParser.NumberconstantContext ctx) {
         super.exitNumberconstant(ctx);
-        this.expression.setValue(Integer.parseInt(ctx.getText()));
+        int timesOrValue = Integer.parseInt(ctx.getText());
+        if (this.expression != null) {
+            this.expression.setValue(timesOrValue);
+        }
+        else {
+            quantifierBuilder = quantifierBuilder.bound(timesOrValue);
+        }
+    }
+
+    @Override
+    public void enterQuantifier(PatternLanguageParser.QuantifierContext ctx) {
+        super.enterQuantifier(ctx);
+
+    }
+
+
+    @Override
+    public void exitQuantifier(PatternLanguageParser.QuantifierContext ctx) {
+        super.exitQuantifier(ctx);
     }
 
     @Override
     public void exitNumber(PatternLanguageParser.NumberContext ctx) {
         super.exitNumber(ctx);
+    }
+
+    @Override
+    public void enterNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx) {
+        super.enterNumber_quantifier(ctx);
+    }
+
+    @Override
+    public void enterNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx) {
+        super.enterNumber_quantifier_greedy(ctx);
+        this.quantifierBuilder = quantifierBuilder.greedy();
+    }
+
+    @Override
+    public void exitNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx) {
+        super.exitNumber_quantifier(ctx);
+    }
+
+    @Override
+    public void exitNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx) {
+        super.exitNumber_quantifier_greedy(ctx);
+    }
+
+    @Override
+    public void enterPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx) {
+        super.enterPlus_quantifier(ctx);
+        quantifierBuilder = quantifierBuilder.oneOrMore();
+    }
+
+    @Override
+    public void exitPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx) {
+        super.exitPlus_quantifier(ctx);
+    }
+
+    @Override
+    public void enterStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx) {
+        super.enterStar_quantifier(ctx);
+        quantifierBuilder = quantifierBuilder.zeroOrMore();
+    }
+
+    @Override
+    public void exitStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx) {
+        super.exitStar_quantifier(ctx);
+    }
+
+    @Override
+    public void enterPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx) {
+        super.enterPatternFilterExpressionOptional(ctx);;
+        this.quantifierBuilder = this.quantifierBuilder.optional();
+    }
+
+    @Override
+    public void enterPatternExpression(PatternLanguageParser.PatternExpressionContext ctx) {
+        super.enterPatternExpression(ctx);
+        this.quantifierBuilder = new Quantifier.Builder();
+    }
+
+    @Override
+    public void exitPatternExpression(PatternLanguageParser.PatternExpressionContext ctx) {
+        this.pattern = this.quantifierBuilder.build().apply(pattern);
     }
 
     public Pattern<Event, Event> getPattern() {
