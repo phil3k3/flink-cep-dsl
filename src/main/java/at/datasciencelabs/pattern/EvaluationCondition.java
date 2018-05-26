@@ -16,6 +16,6 @@ public class EvaluationCondition extends IterativeCondition<Event> {
 
     @Override
     public boolean filter(Event event, Context<Event> context) throws Exception {
-        return condition.stream().allMatch(k -> k.evaluate(event));
+        return condition.evaluate(event, context);
     }
 }

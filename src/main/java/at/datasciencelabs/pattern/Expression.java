@@ -1,11 +1,13 @@
 package at.datasciencelabs.pattern;
 
+import org.apache.flink.cep.pattern.conditions.IterativeCondition;
+
 import java.io.Serializable;
 
 /*
   Represents a single expression consisting of attribute, operator and value
  */
-class Expression implements Serializable {
+class Expression implements Serializable, ExpressionInterface {
     private String attribute;
     private Operator operator;
     private Object value;
@@ -22,7 +24,7 @@ class Expression implements Serializable {
         this.value = value;
     }
 
-    boolean evaluate(Event event) {
+    public boolean evaluate(Event event, IterativeCondition.Context<Event> context) {
         return operator.evaluate(event.getAttribute(attribute), value);
     }
 }

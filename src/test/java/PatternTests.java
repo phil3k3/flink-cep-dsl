@@ -273,7 +273,7 @@ public class PatternTests {
         event2.addAttribute("attribute", "testabc2");
         event2.addAttribute("correlation_id", 10);
 
-        executeTest("A(attribute='testabc') -> B(attribute='testabc2' && correlation_id=A.correlation_id)", Lists.newArrayList(event, event2));
+        executeTest("A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=A.correlation_id)", Lists.newArrayList(event, event2));
     }
 
     private List<Event> generate(int amount) {

@@ -10,7 +10,9 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     private Pattern<Event, Event> pattern;
     private Expression expression;
-    private ExpressionList expressionList;
+    private ExpressionList orExpressionList;
+    private ExpressionList andExpressionList;
+    private ExpressionList current;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
@@ -57,35 +59,34 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void enterExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
         super.enterExpressionList(ctx);
-        expressionList = new ExpressionList();
+
     }
 
-    @Override
-    public void enterExpression(PatternLanguageParser.ExpressionContext ctx) {
-        super.enterExpression(ctx);
-    }
-
-
-    @Override
-    public void exitExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
-        pattern = pattern.where(new EvaluationCondition(expressionList));
-        super.exitExpressionList(ctx);
-    }
-
-    @Override
-    public void exitExpression(PatternLanguageParser.ExpressionContext ctx) {
-        super.exitExpression(ctx);
-        expressionList.add(expression);
-    }
 
     @Override
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.enterEvalAndExpression(ctx);
+        andExpressionList = ExpressionList.and();
+        current = andExpressionList;
     }
 
     @Override
     public void exitEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.exitEvalAndExpression(ctx);
+        current = orExpressionList;
+    }
+
+    @Override
+    public void enterEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
+        super.enterEvalOrExpression(ctx);
+        orExpressionList = ExpressionList.or();
+        current = orExpressionList;
+    }
+
+    @Override
+    public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
+        super.exitEvalOrExpression(ctx);
+        pattern = pattern.where(new EvaluationCondition(orExpressionList));
     }
 
     @Override
