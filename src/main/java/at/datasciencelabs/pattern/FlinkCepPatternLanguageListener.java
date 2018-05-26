@@ -9,13 +9,11 @@ import org.apache.flink.cep.pattern.Pattern;
 public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener {
 
     private Pattern<Event, Event> pattern;
-    private EvaluationCondition condition;
     private Expression expression;
     private ExpressionList expressionList;
     private boolean isFollowedBy;
-    private boolean isQuantifier;
+    private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
-    private boolean isOptionalQuantifier;
 
     public FlinkCepPatternLanguageListener() {
     }
@@ -40,6 +38,9 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         else {
             if (isFollowedBy) {
                 pattern = pattern.followedBy(ctx.getText());
+            }
+            else if (isFollowedByAny) {
+                pattern = pattern.followedByAny(ctx.getText());
             }
             else {
                 pattern = pattern.next(ctx.getText());
@@ -154,6 +155,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void enterFollowedByRepeat(PatternLanguageParser.FollowedByRepeatContext ctx) {
         super.enterFollowedByRepeat(ctx);
         isFollowedBy = true;
+    }
+
+    @Override
+    public void enterFollowedByAnyRepeat(PatternLanguageParser.FollowedByAnyRepeatContext ctx) {
+        super.enterFollowedByAnyRepeat(ctx);
+        isFollowedByAny = true;
     }
 
     @Override

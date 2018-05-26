@@ -252,6 +252,29 @@ public class PatternTests {
         assertThat(results.get("B").size(), is(1));
     }
 
+    @Test
+    public void shouldEvaluateFollowedByAny() throws Exception {
+        Event event = new Event();
+        event.addAttribute("attribute", "testabc");
+        Event event2 = new Event();
+        event2.addAttribute("attribute", "testabc2");
+        Event event3 = new Event();
+        event3.addAttribute("attribute", 30);
+
+        executeTest("A(attribute='testabc') ->> B(attribute=30)", Lists.newArrayList(event, event2, event3));
+    }
+
+    @Test
+    public void shouldEvaluateCorrelation() throws Exception {
+        Event event = new Event();
+        event.addAttribute("attribute", "testabc");
+        event.addAttribute("correlation_id", 10);
+        Event event2 = new Event();
+        event2.addAttribute("attribute", "testabc2");
+        event2.addAttribute("correlation_id", 10);
+
+        executeTest("A(attribute='testabc') -> B(attribute='testabc2' && correlation_id=A.correlation_id)", Lists.newArrayList(event, event2));
+    }
 
     private List<Event> generate(int amount) {
         List<Event> events = new ArrayList<>();
