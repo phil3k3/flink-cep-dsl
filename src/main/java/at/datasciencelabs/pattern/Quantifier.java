@@ -13,12 +13,6 @@ public class Quantifier {
     private Integer upperBound;
 
     public Pattern<Event, Event> apply(Pattern<Event, Event> pattern) {
-        if (optional) {
-            pattern = pattern.optional();
-        }
-        if (greedy) {
-            pattern = pattern.greedy();
-        }
         if (oneOrMore) {
             pattern = pattern.oneOrMore();
         }
@@ -35,6 +29,12 @@ public class Quantifier {
             else {
                 pattern = pattern.timesOrMore(lowerBound);
             }
+        }
+        if (optional) {
+            pattern = pattern.optional();
+        }
+        if (greedy) {
+            pattern = pattern.greedy();
         }
         return pattern;
     }

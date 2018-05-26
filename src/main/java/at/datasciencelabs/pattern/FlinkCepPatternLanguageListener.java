@@ -240,14 +240,27 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     @Override
-    public void enterPatternExpression(PatternLanguageParser.PatternExpressionContext ctx) {
-        super.enterPatternExpression(ctx);
+    public void enterPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx) {
+        super.enterPatternFilterExpression(ctx);
         this.quantifierBuilder = new Quantifier.Builder();
     }
 
     @Override
-    public void exitPatternExpression(PatternLanguageParser.PatternExpressionContext ctx) {
+    public void exitPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx) {
+        super.exitPatternFilterExpression(ctx);
         this.pattern = this.quantifierBuilder.build().apply(pattern);
+    }
+
+    @Override
+    public void enterUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx) {
+        super.enterUpper_bound_unlimited(ctx);
+        this.quantifierBuilder = quantifierBuilder.bound(Integer.MAX_VALUE);
+    }
+
+
+    @Override
+    public void exitUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx) {
+        super.exitUpper_bound_unlimited(ctx);
     }
 
     public Pattern<Event, Event> getPattern() {

@@ -128,6 +128,17 @@ public class PatternTests {
     }
 
     @Test
+    public void shouldEvaluateFourForTwoThreeOrFourGreedy() throws Exception {
+        List<Event> events = generate(4);
+
+        executeTest("A{2,4}?(attribute='testabc')", events);
+
+        assertThat(results.size(), is(1));
+        assertThat(results.containsKey("A"), is(true));
+        assertThat(results.get("A").size(), is(4));
+    }
+
+    @Test
     public void shouldEvaluateZeroOrMoreOne() throws Exception {
         List<Event> events = generate(1);
 
@@ -135,11 +146,63 @@ public class PatternTests {
 
         assertThat(results.size(), is(1));
         assertThat(results.containsKey("A"), is(true));
-        // all results are 2 because it is not greedy
         assertThat(results.get("A").size(), is(1));
     }
 
-    // TODO how to test zero ?
+    @Test
+    public void shouldEvaluteZeroOrMoreTwoEvents() throws Exception {
+        Event event = new Event();
+        event.addAttribute("attribute", "testabc");
+        Event event2 = new Event();
+        event2.addAttribute("attribute", 30);
+
+        executeTest("A*(attribute='testabc') B(attribute=30)", Lists.newArrayList(event, event2));
+
+        assertThat(results.size(), is(2));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
+        assertThat(results.containsKey("A"), is(true));
+        assertThat(results.get("A").size(), is(1));
+    }
+
+    @Test
+    public void shouldEvaluteZeroOrMoreOneEvent() throws Exception {
+        Event event2 = new Event();
+        event2.addAttribute("attribute", 30);
+
+        executeTest("A*(attribute='testabc') B(attribute=30)", Lists.newArrayList(event2));
+
+        assertThat(results.size(), is(1));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
+        assertThat(results.containsKey("A"), is(false));
+    }
+
+    @Test
+    public void shouldEvaluteOneOptionalOneEvent() throws Exception {
+        Event event2 = new Event();
+        event2.addAttribute("attribute", 30);
+
+        executeTest("A{1}(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
+
+        assertThat(results.size(), is(1));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
+        assertThat(results.containsKey("A"), is(false));
+    }
+
+    @Test
+    public void shouldEvaluteTwoOptionalOneEvent() throws Exception {
+        Event event2 = new Event();
+        event2.addAttribute("attribute", 30);
+
+        executeTest("A{2}(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
+
+        assertThat(results.size(), is(1));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
+        assertThat(results.containsKey("A"), is(false));
+    }
 
     @Test
     public void shouldEvaluateZeroOrMoreTwo() throws Exception {
@@ -163,6 +226,30 @@ public class PatternTests {
         assertThat(results.containsKey("A"), is(true));
         // all results are 2 because it is not greedy
         assertThat(results.get("A").size(), is(2));
+    }
+
+    @Test
+    public void shouldEvaluateTimesOrMoreThreeGreedy() throws Exception {
+        List<Event> events = generate(3);
+
+        executeTest("A{2,+}?(attribute='testabc')", events);
+
+        assertThat(results.size(), is(1));
+        assertThat(results.containsKey("A"), is(true));
+        assertThat(results.get("A").size(), is(3));
+    }
+
+    @Test
+    public void shouldEvaluateTimesOrMoreThreeGreedyOptional() throws Exception {
+        Event event2 = new Event();
+        event2.addAttribute("attribute", 30);
+
+        executeTest("A{2,+}?(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
+
+        assertThat(results.size(), is(1));
+        assertThat(results.containsKey("A"), is(false));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
     }
 
 
