@@ -4,9 +4,9 @@ The idea is to have simple pattern language based
 on regular expression syntax and inspired by other Stream Processing
 frameworks such as Esper.
 
-Currently the following features are supported:
+Note that all expressions are case-insensitive.
 
-Note that all expressions are case-insenstiive
+Currently the following features are supported:
 
 ## Conditions
 
