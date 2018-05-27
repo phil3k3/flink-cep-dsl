@@ -1,12 +1,5 @@
-import at.datasciencelabs.pattern.CaseInsensitiveInputStream;
 import at.datasciencelabs.pattern.Event;
-import at.datasciencelabs.pattern.FlinkCepPatternLanguageListener;
-import at.datasciencelabs.pattern.generated.PatternLanguageLexer;
-import at.datasciencelabs.pattern.generated.PatternLanguageParser;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.apache.flink.cep.CEP;
+import at.datasciencelabs.pattern.Pattern;
 import org.apache.flink.cep.PatternSelectFunction;
 import org.apache.flink.cep.PatternStream;
 import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
@@ -287,21 +280,12 @@ public class PatternTests {
     }
 
     private void executeTest(String pattern, List<Event> data) throws Exception {
-        PatternLanguageLexer lexer = new PatternLanguageLexer(new CaseInsensitiveInputStream(pattern));
-
-        CommonTokenStream tokens = new CommonTokenStream(lexer); // a token stream
-        PatternLanguageParser parser = new PatternLanguageParser(tokens); // transforms tokens into parse trees
-        ParseTree t = parser.patternExpression(); // creates the parse tree from the called rule
-
-        ParseTreeWalker parseTreeWalker = new ParseTreeWalker();
-        FlinkCepPatternLanguageListener flinkCepPatternLanguageListener = new FlinkCepPatternLanguageListener();
-        parseTreeWalker.walk(flinkCepPatternLanguageListener, t);
 
         StreamExecutionEnvironment streamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment();
 
         DataStream<Event> eventDataStream = streamExecutionEnvironment.fromCollection(data);
 
-        PatternStream<Event> patternStream = CEP.pattern(eventDataStream, flinkCepPatternLanguageListener.getPattern());
+        PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
 
         patternStream.select(new PatternSelectFunction<Event, Event>() {
             @Override
