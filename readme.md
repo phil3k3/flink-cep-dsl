@@ -50,5 +50,8 @@ a b
 
 a -> b
 
+Known Issues
 
+Currently the greedy tests fail due to an issue in Flin 1.4.0:
+https://issues.apache.org/jira/browse/FLINK-8914
 
