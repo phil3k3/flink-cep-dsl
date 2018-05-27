@@ -274,6 +274,30 @@ public class PatternTests {
         event2.addAttribute("correlation_id", 10);
 
         executeTest("A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=A.correlation_id)", Lists.newArrayList(event, event2));
+
+        assertThat(results.size(), is(2));
+        assertThat(results.containsKey("A"), is(true));
+        assertThat(results.get("A").size(), is(1));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
+    }
+
+    @Test
+    public void shouldEvaluateAndExpression() throws Exception {
+        Event event = new Event();
+        event.addAttribute("attribute", "testabc");
+        event.addAttribute("correlation_id", 10);
+        Event event2 = new Event();
+        event2.addAttribute("attribute", "testabc2");
+        event2.addAttribute("correlation_id", 10);
+
+        executeTest("A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=10)", Lists.newArrayList(event, event2));
+
+        assertThat(results.size(), is(2));
+        assertThat(results.containsKey("A"), is(true));
+        assertThat(results.get("A").size(), is(1));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
     }
 
     private List<Event> generate(int amount) {

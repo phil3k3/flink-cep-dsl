@@ -44,11 +44,32 @@ a(attribute != 30)
 
 * Next:
 
+```
 a b
+```
 
 * Followed By 
 
+```
 a -> b
+```
 
+* Followed By Any
 
+```
+a ->> b
+```
 
+## Examples
+
+* Simple Condition
+
+```
+Sensor(temperature > 30)
+```
+
+* Correlation
+
+```
+Sensor1(temperature > 30) -> Sensor2(temperature > 50 and id=Sensor1.id)
+ ```

@@ -11,8 +11,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private Pattern<Event, Event> pattern;
     private Expression expression;
     private ExpressionList orExpressionList;
-    private ExpressionList andExpressionList;
-    private ExpressionList current;
+    private ExpressionList currentExpressioList;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
@@ -66,21 +65,21 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.enterEvalAndExpression(ctx);
-        andExpressionList = ExpressionList.and();
-        current = andExpressionList;
+        currentExpressioList = ExpressionList.and();
     }
 
     @Override
     public void exitEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.exitEvalAndExpression(ctx);
-        current = orExpressionList;
+        orExpressionList.add(currentExpressioList);
+        currentExpressioList = orExpressionList;
     }
 
     @Override
     public void enterEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.enterEvalOrExpression(ctx);
         orExpressionList = ExpressionList.or();
-        current = orExpressionList;
+        currentExpressioList = orExpressionList;
     }
 
     @Override
@@ -117,7 +116,17 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEventPropertyIdent(PatternLanguageParser.EventPropertyIdentContext ctx) {
         super.exitEventPropertyIdent(ctx);
-        expression.setAttribute(ctx.getText());
+        if (expression.hasAttribute()) {
+            if (expression.hasValueClassIdentiifer()) {
+                expression.setValueAttribute(ctx.getText());
+            }
+            else {
+                expression.setValueClassIdentifier(ctx.getText());
+            }
+        }
+        else {
+            expression.setAttribute(ctx.getText());
+        }
     }
 
     @Override
@@ -150,6 +159,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEvalEqualsExpression(PatternLanguageParser.EvalEqualsExpressionContext ctx) {
         super.exitEvalEqualsExpression(ctx);
+        currentExpressioList.add(expression);
     }
 
     @Override
@@ -243,7 +253,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     @Override
     public void enterPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx) {
-        super.enterPatternFilterExpressionOptional(ctx);;
+        super.enterPatternFilterExpressionOptional(ctx);
         this.quantifierBuilder = this.quantifierBuilder.optional();
     }
 
