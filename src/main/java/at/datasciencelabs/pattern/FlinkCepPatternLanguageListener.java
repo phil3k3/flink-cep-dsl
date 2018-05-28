@@ -10,7 +10,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     private Pattern<Event, Event> pattern;
     private Expression expression;
-    private ExpressionList expressionList;
+    private AggregatingContextMatcher orAggregatingContextMatcher;
+    private AggregatingContextMatcher currentExpressioList;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
@@ -57,35 +58,38 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void enterExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
         super.enterExpressionList(ctx);
-        expressionList = new ExpressionList();
-    }
 
-    @Override
-    public void enterExpression(PatternLanguageParser.ExpressionContext ctx) {
-        super.enterExpression(ctx);
     }
-
 
     @Override
     public void exitExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
-        pattern = pattern.where(new EvaluationCondition(expressionList));
         super.exitExpressionList(ctx);
-    }
-
-    @Override
-    public void exitExpression(PatternLanguageParser.ExpressionContext ctx) {
-        super.exitExpression(ctx);
-        expressionList.add(expression);
     }
 
     @Override
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.enterEvalAndExpression(ctx);
+        currentExpressioList = AggregatingContextMatcher.and();
     }
 
     @Override
     public void exitEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.exitEvalAndExpression(ctx);
+        orAggregatingContextMatcher.add(currentExpressioList);
+        currentExpressioList = orAggregatingContextMatcher;
+    }
+
+    @Override
+    public void enterEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
+        super.enterEvalOrExpression(ctx);
+        orAggregatingContextMatcher = AggregatingContextMatcher.or();
+        currentExpressioList = orAggregatingContextMatcher;
+    }
+
+    @Override
+    public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
+        super.exitEvalOrExpression(ctx);
+        pattern = pattern.where(new EvaluationCondition(orAggregatingContextMatcher));
     }
 
     @Override
@@ -116,7 +120,17 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEventPropertyIdent(PatternLanguageParser.EventPropertyIdentContext ctx) {
         super.exitEventPropertyIdent(ctx);
-        expression.setAttribute(ctx.getText());
+        if (expression.hasAttribute()) {
+            if (expression.hasValueClassIdentiifer()) {
+                expression.setValueAttribute(ctx.getText());
+            }
+            else {
+                expression.setValueClassIdentifier(ctx.getText());
+            }
+        }
+        else {
+            expression.setAttribute(ctx.getText());
+        }
     }
 
     @Override
@@ -147,8 +161,19 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     @Override
+    public void enterEvalRelationalExpression(PatternLanguageParser.EvalRelationalExpressionContext ctx) {
+        super.enterEvalRelationalExpression(ctx);
+    }
+
+    @Override
+    public void exitEvalRelationalExpression(PatternLanguageParser.EvalRelationalExpressionContext ctx) {
+        super.exitEvalRelationalExpression(ctx);
+    }
+
+    @Override
     public void exitEvalEqualsExpression(PatternLanguageParser.EvalEqualsExpressionContext ctx) {
         super.exitEvalEqualsExpression(ctx);
+        currentExpressioList.add(expression);
     }
 
     @Override
@@ -242,7 +267,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     @Override
     public void enterPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx) {
-        super.enterPatternFilterExpressionOptional(ctx);;
+        super.enterPatternFilterExpressionOptional(ctx);
         this.quantifierBuilder = this.quantifierBuilder.optional();
     }
 

@@ -28,9 +28,9 @@ public class PatternTests {
     @Test
     public void shouldEvaluateNextPattern() throws Exception {
         Event event = new Event();
-        event.addAttribute("attribute", "testabc");
+        event.setAttribute("attribute", "testabc");
         Event event2 = new Event();
-        event2.addAttribute("attribute", 30);
+        event2.setAttribute("attribute", 30);
         executeTest("A(attribute='testabc') B(attribute=30)", Lists.newArrayList(event, event2));
 
         assertThat(results.size(), is(2));
@@ -39,11 +39,11 @@ public class PatternTests {
     @Test
     public void shouldEvaluateNextPatternAndFail() throws Exception {
         Event event = new Event();
-        event.addAttribute("attribute", "testabc");
+        event.setAttribute("attribute", "testabc");
         Event event2 = new Event();
-        event2.addAttribute("attribute", "testabc2");
+        event2.setAttribute("attribute", "testabc2");
         Event event3 = new Event();
-        event3.addAttribute("attribute", 30);
+        event3.setAttribute("attribute", 30);
         executeTest("A(attribute='testabc') B(attribute=30)", Lists.newArrayList(event, event2, event3));
 
         assertThat(results.size(), is(0));
@@ -52,11 +52,11 @@ public class PatternTests {
     @Test
     public void shouldEvaluateFollowedByPattern() throws Exception {
         Event event = new Event();
-        event.addAttribute("attribute", "testabc");
+        event.setAttribute("attribute", "testabc");
         Event event2 = new Event();
-        event2.addAttribute("attribute", "testabc2");
+        event2.setAttribute("attribute", "testabc2");
         Event event3 = new Event();
-        event3.addAttribute("attribute", 30);
+        event3.setAttribute("attribute", 30);
         executeTest("A(attribute='testabc') -> B(attribute=30)", Lists.newArrayList(event, event2, event3));
 
         assertThat(results.size(), is(2));
@@ -145,9 +145,9 @@ public class PatternTests {
     @Test
     public void shouldEvaluteZeroOrMoreTwoEvents() throws Exception {
         Event event = new Event();
-        event.addAttribute("attribute", "testabc");
+        event.setAttribute("attribute", "testabc");
         Event event2 = new Event();
-        event2.addAttribute("attribute", 30);
+        event2.setAttribute("attribute", 30);
 
         executeTest("A*(attribute='testabc') B(attribute=30)", Lists.newArrayList(event, event2));
 
@@ -161,7 +161,7 @@ public class PatternTests {
     @Test
     public void shouldEvaluteZeroOrMoreOneEvent() throws Exception {
         Event event2 = new Event();
-        event2.addAttribute("attribute", 30);
+        event2.setAttribute("attribute", 30);
 
         executeTest("A*(attribute='testabc') B(attribute=30)", Lists.newArrayList(event2));
 
@@ -174,7 +174,7 @@ public class PatternTests {
     @Test
     public void shouldEvaluteOneOptionalOneEvent() throws Exception {
         Event event2 = new Event();
-        event2.addAttribute("attribute", 30);
+        event2.setAttribute("attribute", 30);
 
         executeTest("A{1}(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
 
@@ -187,7 +187,7 @@ public class PatternTests {
     @Test
     public void shouldEvaluteTwoOptionalOneEvent() throws Exception {
         Event event2 = new Event();
-        event2.addAttribute("attribute", 30);
+        event2.setAttribute("attribute", 30);
 
         executeTest("A{2}(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
 
@@ -235,7 +235,7 @@ public class PatternTests {
     @Test
     public void shouldEvaluateTimesOrMoreThreeGreedyOptional() throws Exception {
         Event event2 = new Event();
-        event2.addAttribute("attribute", 30);
+        event2.setAttribute("attribute", 30);
 
         executeTest("A{2,+}?(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
 
@@ -248,11 +248,11 @@ public class PatternTests {
     @Test
     public void shouldEvaluateFollowedByAny() throws Exception {
         Event event = new Event();
-        event.addAttribute("attribute", "testabc");
+        event.setAttribute("attribute", "testabc");
         Event event2 = new Event();
-        event2.addAttribute("attribute", "testabc2");
+        event2.setAttribute("attribute", "testabc2");
         Event event3 = new Event();
-        event3.addAttribute("attribute", 30);
+        event3.setAttribute("attribute", 30);
 
         executeTest("A(attribute='testabc') ->> B(attribute=30)", Lists.newArrayList(event, event2, event3));
     }
@@ -260,20 +260,44 @@ public class PatternTests {
     @Test
     public void shouldEvaluateCorrelation() throws Exception {
         Event event = new Event();
-        event.addAttribute("attribute", "testabc");
-        event.addAttribute("correlation_id", 10);
+        event.setAttribute("attribute", "testabc");
+        event.setAttribute("correlation_id", 10);
         Event event2 = new Event();
-        event2.addAttribute("attribute", "testabc2");
-        event2.addAttribute("correlation_id", 10);
+        event2.setAttribute("attribute", "testabc2");
+        event2.setAttribute("correlation_id", 10);
 
-        executeTest("A(attribute='testabc') -> B(attribute='testabc2' && correlation_id=A.correlation_id)", Lists.newArrayList(event, event2));
+        executeTest("A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=A.correlation_id)", Lists.newArrayList(event, event2));
+
+        assertThat(results.size(), is(2));
+        assertThat(results.containsKey("A"), is(true));
+        assertThat(results.get("A").size(), is(1));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
+    }
+
+    @Test
+    public void shouldEvaluateAndExpression() throws Exception {
+        Event event = new Event();
+        event.setAttribute("attribute", "testabc");
+        event.setAttribute("correlation_id", 10);
+        Event event2 = new Event();
+        event2.setAttribute("attribute", "testabc2");
+        event2.setAttribute("correlation_id", 10);
+
+        executeTest("A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=10)", Lists.newArrayList(event, event2));
+
+        assertThat(results.size(), is(2));
+        assertThat(results.containsKey("A"), is(true));
+        assertThat(results.get("A").size(), is(1));
+        assertThat(results.containsKey("B"), is(true));
+        assertThat(results.get("B").size(), is(1));
     }
 
     private List<Event> generate(int amount) {
         List<Event> events = new ArrayList<>();
         for(int i = 0;  i < amount; i++) {
             Event event = new Event();
-            event.addAttribute("attribute", "testabc");
+            event.setAttribute("attribute", "testabc");
             events.add(event);
         }
         return events;

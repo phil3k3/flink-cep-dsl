@@ -11,7 +11,7 @@ public class Event {
         return values.get(attribute);
     }
 
-    public void addAttribute(String attribute, Object value) {
+    public void setAttribute(String attribute, Object value) {
         values.put(attribute, value);
     }
 }

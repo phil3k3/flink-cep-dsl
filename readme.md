@@ -44,14 +44,37 @@ a(attribute != 30)
 
 * Next:
 
+```
 a b
+```
 
 * Followed By 
 
+```
 a -> b
+```
 
-Known Issues
+* Followed By Any
 
+```
+a ->> b
+```
+
+## Examples
+
+* Simple Condition
+
+```
+Sensor(temperature > 30)
+```
+
+* Correlation
+
+```
+Sensor1(temperature > 30) -> Sensor2(temperature > 50 and id=Sensor1.id)
+ ```
+ 
+## Known Issues
+ 
 Currently the greedy tests fail due to an issue in Flin 1.4.0:
 https://issues.apache.org/jira/browse/FLINK-8914
-

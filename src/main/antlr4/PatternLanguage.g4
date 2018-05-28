@@ -33,7 +33,7 @@ upper_bound_unlimited: k=PLUS;
 classIdentifier : i1=escapableStr (DOT i2=escapableStr)*;
 escapableStr : i1=IDENT | i2=EVENTS | i3=TICKED_STRING_LITERAL;
 
-expressionList : expression (COMMA expression)*;
+expressionList : expression;
 
 expression : evalOrExpression;
 
