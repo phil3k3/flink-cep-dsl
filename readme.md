@@ -22,10 +22,6 @@ a(attribute != 30)
 * String 'abc'
 * Integer 30
 
-### Operators
-
-* Equals '='
-
 ## Quantifiers
 
 * a* Zero or More 
