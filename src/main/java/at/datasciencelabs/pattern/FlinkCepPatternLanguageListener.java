@@ -10,8 +10,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     private Pattern<Event, Event> pattern;
     private Expression expression;
-    private ExpressionList orExpressionList;
-    private ExpressionList currentExpressioList;
+    private AggregatingContextMatcher orAggregatingContextMatcher;
+    private AggregatingContextMatcher currentExpressioList;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
@@ -61,31 +61,35 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     }
 
+    @Override
+    public void exitExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
+        super.exitExpressionList(ctx);
+    }
 
     @Override
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.enterEvalAndExpression(ctx);
-        currentExpressioList = ExpressionList.and();
+        currentExpressioList = AggregatingContextMatcher.and();
     }
 
     @Override
     public void exitEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.exitEvalAndExpression(ctx);
-        orExpressionList.add(currentExpressioList);
-        currentExpressioList = orExpressionList;
+        orAggregatingContextMatcher.add(currentExpressioList);
+        currentExpressioList = orAggregatingContextMatcher;
     }
 
     @Override
     public void enterEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.enterEvalOrExpression(ctx);
-        orExpressionList = ExpressionList.or();
-        currentExpressioList = orExpressionList;
+        orAggregatingContextMatcher = AggregatingContextMatcher.or();
+        currentExpressioList = orAggregatingContextMatcher;
     }
 
     @Override
     public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.exitEvalOrExpression(ctx);
-        pattern = pattern.where(new EvaluationCondition(orExpressionList));
+        pattern = pattern.where(new EvaluationCondition(orAggregatingContextMatcher));
     }
 
     @Override
@@ -154,6 +158,16 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void enterEvalEqualsExpression(PatternLanguageParser.EvalEqualsExpressionContext ctx) {
         super.enterEvalEqualsExpression(ctx);
         expression = new Expression(Operator.EQUALS);
+    }
+
+    @Override
+    public void enterEvalRelationalExpression(PatternLanguageParser.EvalRelationalExpressionContext ctx) {
+        super.enterEvalRelationalExpression(ctx);
+    }
+
+    @Override
+    public void exitEvalRelationalExpression(PatternLanguageParser.EvalRelationalExpressionContext ctx) {
+        super.exitEvalRelationalExpression(ctx);
     }
 
     @Override

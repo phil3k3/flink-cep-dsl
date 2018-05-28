@@ -13,7 +13,8 @@ import java.util.List;
   is provided by the class identifier of the corresponding previous pattern and
   an attribute of an event.
  */
-class Expression implements Serializable, ExpressionInterface {
+class Expression implements Serializable, ContextMatcher {
+
     private String attribute;
     private Operator operator;
     private Object value;
@@ -32,7 +33,7 @@ class Expression implements Serializable, ExpressionInterface {
         this.value = value;
     }
 
-    public boolean evaluate(Event event, IterativeCondition.Context<Event> context) {
+    public boolean matches(Event event, IterativeCondition.Context<Event> context) {
         return operator.evaluate(event.getAttribute(attribute), getValue(context));
     }
 

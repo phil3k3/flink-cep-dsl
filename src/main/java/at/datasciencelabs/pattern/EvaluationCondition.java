@@ -7,15 +7,14 @@ import org.apache.flink.cep.pattern.conditions.IterativeCondition;
  */
 public class EvaluationCondition extends IterativeCondition<Event> {
 
-    private ExpressionList condition;
+    private AggregatingContextMatcher contextMatchers;
 
-    EvaluationCondition(ExpressionList condition) {
-        this.condition = condition;
+    EvaluationCondition(AggregatingContextMatcher contextMatchers) {
+        this.contextMatchers = contextMatchers;
     }
 
-
     @Override
-    public boolean filter(Event event, Context<Event> context) throws Exception {
-        return condition.evaluate(event, context);
+    public boolean filter(Event event, Context<Event> context) {
+        return contextMatchers.matches(event, context);
     }
 }
