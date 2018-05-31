@@ -36,27 +36,27 @@ Currently the following features are supported:
 
 ### Operators
 
-* Equals '='
+* Equals
 ```
 a(attribute = 30)
 ```
-* Not Equals '!='
+* Not Equals
 ```
 a(attribute != 30)
 ```
-* Lower Than '<'
+* Lower Than
 ```
 a(attribute < 30)
 ```
-* Greater Than '>'
+* Greater Than
 ```
 a(attribute > 30)
 ```
-* Lower Than or Equals '<='
+* Lower Than or Equals
 ```
 a(attribute <= 30)
 ```
-* Greater Than or Equals '>='
+* Greater Than or Equals
 ```
 a(attribute >= 30)
 ```
