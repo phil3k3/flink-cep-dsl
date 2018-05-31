@@ -37,17 +37,29 @@ Currently the following features are supported:
 ### Operators
 
 * Equals '='
+```
 a(attribute = 30)
+```
 * Not Equals '!='
+```
 a(attribute != 30)
+```
 * Lower Than '<'
+```
 a(attribute < 30)
+```
 * Greater Than '>'
+```
 a(attribute > 30)
+```
 * Lower Than or Equals '<='
+```
 a(attribute <= 30)
+```
 * Greater Than or Equals '>='
+```
 a(attribute >= 30)
+```
 
 ### Data Types
 
@@ -56,20 +68,38 @@ a(attribute >= 30)
 
 ## Quantifiers
 
-* a* Zero or More 
-
-* a+ One or More
-
-* a? Zero or One
-
-* a{3} Exactly Three 
-
-* a{3,+} Three or More
+* Zero or More
+ ```
+ a*
+ ```
+* One or More
+```
+a+
+```
+* Zero or One
+```
+a?
+```
+* Exactly Three
+```
+ a{3}
+```
+* Three or More
+```
+ a{3,+}
+```
 
 ### Greediness vs Optional
 
-* a{3}(b = 3)? Optional
-* a{3}?(b = 3) Greedy
+* Optional
+```
+a{3}(b = 3)?
+ ```
+* Greedy
+```
+a{3}?(b = 3)
+```
+ 
 
 
 ## Patterns
