@@ -1,17 +1,18 @@
 package at.datasciencelabs.pattern;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
-public class Event {
+/**
+ * Describes an event which occors in the pattern stream.
+ *
+ * The event has a set of associated attributes.
+ */
+public interface Event {
 
-    private Map<String, Object> values  = new HashMap<>();
-
-    public Object getAttribute(String attribute) {
-        return values.get(attribute);
-    }
-
-    public void setAttribute(String attribute, Object value) {
-        values.put(attribute, value);
-    }
+    /**
+     * Returns an attribute of the event.
+     * @param attribute the name of the desired attribute.
+     * @return The attribute or {@link Optional#empty()}} if not available
+     */
+    Optional<Object> getAttribute(String attribute);
 }

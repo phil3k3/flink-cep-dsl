@@ -154,15 +154,31 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         super.exitConstant(ctx);
     }
 
+
     @Override
     public void enterEvalEqualsExpression(PatternLanguageParser.EvalEqualsExpressionContext ctx) {
         super.enterEvalEqualsExpression(ctx);
-        expression = new Expression(Operator.EQUALS);
+        this.expression = new Expression();
+        if (ctx.eq != null) {
+            this.expression.setOperator(Operator.EQUALS);
+        }
+        if (ctx.ne != null) {
+            this.expression.setOperator(Operator.NOT_EQUALS);
+        }
     }
 
     @Override
     public void enterEvalRelationalExpression(PatternLanguageParser.EvalRelationalExpressionContext ctx) {
         super.enterEvalRelationalExpression(ctx);
+        if (ctx.r != null) {
+            try {
+                String operatorToken = ctx.r.getText();
+                Operator operator = Operator.fromText(operatorToken);
+                expression.setOperator(operator);
+            } catch (Throwable throwable) {
+                throw new RuntimeException(throwable);
+            }
+        }
     }
 
     @Override

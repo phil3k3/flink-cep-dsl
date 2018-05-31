@@ -6,6 +6,30 @@ frameworks such as Esper.
 
 Note that all expressions are case-insensitive.
 
+# Building
+
+This is a maven project, so to build you simply:
+
+```
+mvn install -DskipTests
+```
+
+
+# Usage
+
+```java
+DataStream<Event> eventDataStream = ...
+PatternStream<Event> patternStream = Pattern.transform("Sensor(temperature > 30)", eventDataStream);
+patternStream.select(new PatternSelectFunction<Event, Event>() {
+                          @Override
+                          public Event select(Map<String, List<Event>> map) throws Exception {
+                              return map.get("Sensor");
+                          }
+                      })
+
+```
+
+
 Currently the following features are supported:
 
 ## Conditions
@@ -16,6 +40,14 @@ Currently the following features are supported:
 a(attribute = 30)
 * Not Equals '!='
 a(attribute != 30)
+* Lower Than '<'
+a(attribute < 30)
+* Greater Than '>'
+a(attribute > 30)
+* Lower Than or Equals '<='
+a(attribute <= 30)
+* Greater Than or Equals '>='
+a(attribute >= 30)
 
 ### Data Types
 
@@ -65,13 +97,13 @@ a ->> b
 * Simple Condition
 
 ```
-Sensor(temperature = 30)
+Sensor(temperature > 30)
 ```
 
 * Correlation
 
 ```
-Sensor1(temperature = 30) -> Sensor2(temperature = 50 and id=Sensor1.id)
+Sensor1(temperature > 30) -> Sensor2(temperature > 50 and id=Sensor1.id)
  ```
  
 ## Known Issues
