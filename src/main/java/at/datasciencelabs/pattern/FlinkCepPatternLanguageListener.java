@@ -1,10 +1,12 @@
 package at.datasciencelabs.pattern;
 
-import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
-import at.datasciencelabs.pattern.generated.PatternLanguageParser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.flink.cep.nfa.AfterMatchSkipStrategy;
 import org.apache.flink.cep.pattern.Pattern;
+import org.apache.flink.streaming.api.windowing.time.Time;
+
+import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
+import at.datasciencelabs.pattern.generated.PatternLanguageParser;
 
 public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener {
 
@@ -16,7 +18,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
 
-    public FlinkCepPatternLanguageListener() {
+    FlinkCepPatternLanguageListener() {
     }
 
     @Override
@@ -70,6 +72,25 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.enterEvalAndExpression(ctx);
         currentExpressioList = AggregatingContextMatcher.and();
+    }
+
+    @Override
+    public void enterTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
+        super.enterTimeWindow(ctx);
+        if (ctx.u.getText().equals("s")) {
+            pattern = pattern.within(Time.seconds(Integer.parseInt(ctx.c.getText())));
+        }
+        if (ctx.u.getText().endsWith("h")) {
+            pattern = pattern.within(Time.hours(Integer.parseInt(ctx.c.getText())));
+        }
+        if (ctx.u.getText().equals("m")) {
+            pattern = pattern.within(Time.minutes(Integer.parseInt(ctx.c.getText())));
+        }
+    }
+
+    @Override
+    public void exitTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
+        super.exitTimeWindow(ctx);
     }
 
     @Override

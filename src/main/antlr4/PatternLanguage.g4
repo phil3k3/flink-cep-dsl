@@ -15,7 +15,7 @@ followedByAny: f=FOLLOWED_BY_ANY orExpression;
 andExpression :	qualifyExpression (a=AND_EXPR qualifyExpression)*;
 qualifyExpression : (n=NOT_EXPR)? guardPostFix;
 guardPostFix : patternFilterExpression | l=LPAREN patternExpression RPAREN;
-timeWindow: i=WITHIN numberconstant(j=HOUR_SHORT | j=MINUTE_SHORT | j=SECOND_SHORT);
+timeWindow: WITHIN c=numberconstant(u=HOUR_SHORT | u=MINUTE_SHORT | u=SECOND_SHORT);
 patternFilterExpression
     		: patternFilterExpressionOptional | patternFilterExpressionMandatory;
 patternFilterExpressionMandatory
