@@ -5,6 +5,7 @@ import org.apache.flink.cep.PatternStream;
 import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -352,6 +353,92 @@ public class PatternTests {
         assertThat(results.containsKey("A"), is(true));
         assertThat(results.get("A").size(), is(1));
     }
+
+    @Test
+    public void shouldEvaluateWithin() throws Exception {
+        TestEvent event = new TestEvent();
+        event.setAttribute("attribute", "testabc");
+        TestEvent event2 = new TestEvent();
+        event2.setAttribute("attribute", "testabc2");
+        event2.setAttribute("correlation_id", 10);
+
+        String pattern = "A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=10) within 3s";
+
+        StreamExecutionEnvironment streamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        DataStream<Event> eventDataStream = streamExecutionEnvironment.addSource(new SourceFunction<Event>() {
+
+            @Override
+            public void run(SourceContext<Event> sourceContext) throws Exception {
+                sourceContext.collect(event);
+                Thread.sleep(5000);
+                sourceContext.collect(event2);
+            }
+
+            @Override
+            public void cancel() {
+
+            }
+        });
+
+        PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
+
+        patternStream.select(new PatternSelectFunction<Event, Event>() {
+            @Override
+            public Event select(Map<String, List<Event>> map) throws Exception {
+                results.putAll(map);
+                return null;
+            }
+        });
+
+        streamExecutionEnvironment.execute("test");
+
+        assertThat(results.size(), is(0));
+    }
+
+    @Test
+    public void shouldEvaluateWithin2() throws Exception {
+        TestEvent event = new TestEvent();
+        event.setAttribute("attribute", "testabc");
+        TestEvent event2 = new TestEvent();
+        event2.setAttribute("attribute", "testabc2");
+        event2.setAttribute("correlation_id", 10);
+
+        String pattern = "A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=10) within 3s";
+
+        StreamExecutionEnvironment streamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        DataStream<Event> eventDataStream = streamExecutionEnvironment.addSource(new SourceFunction<Event>() {
+
+            @Override
+            public void run(SourceContext<Event> sourceContext) throws Exception {
+                sourceContext.collect(event);
+                Thread.sleep(1000);
+                sourceContext.collect(event2);
+            }
+
+            @Override
+            public void cancel() {
+
+            }
+        });
+
+        PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
+
+        patternStream.select(new PatternSelectFunction<Event, Event>() {
+            @Override
+            public Event select(Map<String, List<Event>> map) throws Exception {
+                results.putAll(map);
+                return null;
+            }
+        });
+
+        streamExecutionEnvironment.execute("test");
+
+        assertThat(results.size(), is(2));
+    }
+
+
 
     private List<Event> generate(int amount) {
         List<Event> events = new ArrayList<>();

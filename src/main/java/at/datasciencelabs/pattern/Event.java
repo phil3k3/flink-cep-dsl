@@ -1,5 +1,6 @@
 package at.datasciencelabs.pattern;
 
+import java.io.Serializable;
 import java.util.Optional;
 
 /**
@@ -7,7 +8,7 @@ import java.util.Optional;
  *
  * The event has a set of associated attributes.
  */
-public interface Event {
+public interface Event extends Serializable {
 
     /**
      * Returns an attribute of the event.

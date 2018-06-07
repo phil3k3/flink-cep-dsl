@@ -193,20 +193,20 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     @Override
-    public void enterFollowedByRepeat(PatternLanguageParser.FollowedByRepeatContext ctx) {
-        super.enterFollowedByRepeat(ctx);
+    public void enterFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
+        super.enterFollowedBy(ctx);
         isFollowedBy = true;
     }
 
     @Override
-    public void enterFollowedByAnyRepeat(PatternLanguageParser.FollowedByAnyRepeatContext ctx) {
-        super.enterFollowedByAnyRepeat(ctx);
+    public void enterFollowedByAny(PatternLanguageParser.FollowedByAnyContext ctx) {
+        super.enterFollowedByAny(ctx);
         isFollowedByAny = true;
     }
 
     @Override
-    public void exitFollowedByRepeat(PatternLanguageParser.FollowedByRepeatContext ctx) {
-        super.exitFollowedByRepeat(ctx);
+    public void exitFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
+        super.exitFollowedBy(ctx);
     }
 
     @Override

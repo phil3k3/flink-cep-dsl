@@ -7,15 +7,15 @@ package at.datasciencelabs.pattern.generated;
 
 
 startPatternExpressionRule : patternExpression EOF;
-patternExpression : orExpression (followedByOrNextRepeat)*;
+patternExpression : orExpression (followedByOrNext)* timeWindow?;
 orExpression : andExpression (o=OR_EXPR andExpression)*;
-followedByOrNextRepeat : followedByRepeat | followedByAnyRepeat | orExpression;
-followedByRepeat: f=FOLLOWED_BY orExpression;
-followedByAnyRepeat: f=FOLLOWED_BY_ANY orExpression;
-andExpression :	matchUntilExpression (a=AND_EXPR matchUntilExpression)*;
-matchUntilExpression : qualifyExpression;
-qualifyExpression : (e=EVERY_EXPR | n=NOT_EXPR)? guardPostFix;
+followedByOrNext : followedBy | followedByAny | orExpression;
+followedBy: f=FOLLOWED_BY orExpression;
+followedByAny: f=FOLLOWED_BY_ANY orExpression;
+andExpression :	qualifyExpression (a=AND_EXPR qualifyExpression)*;
+qualifyExpression : (n=NOT_EXPR)? guardPostFix;
 guardPostFix : patternFilterExpression | l=LPAREN patternExpression RPAREN;
+timeWindow: i=WITHIN numberconstant(j=HOUR_SHORT | j=MINUTE_SHORT | j=SECOND_SHORT);
 patternFilterExpression
     		: patternFilterExpressionOptional | patternFilterExpressionMandatory;
 patternFilterExpressionMandatory
@@ -31,7 +31,7 @@ upper_bound: z=COMMA (upper_bound_unlimited | upper_bound_limited);
 upper_bound_limited: numberconstant;
 upper_bound_unlimited: k=PLUS;
 classIdentifier : i1=escapableStr (DOT i2=escapableStr)*;
-escapableStr : i1=IDENT | i2=EVENTS | i3=TICKED_STRING_LITERAL;
+escapableStr : i1=IDENT | i3=TICKED_STRING_LITERAL;
 
 expressionList : expression;
 
@@ -48,12 +48,11 @@ evalEqualsExpression : evalRelationalExpression (
 			    (eq=EQUALS
 			      |  is=IS
 			      |  isnot=IS NOT_EXPR
-			      |  sqlne=SQL_NE
 			      |  ne=NOT_EQUAL
 			     )
 		       (
 			evalRelationalExpression
-			|  (a=ANY | a=SOME | a=ALL) ( (LPAREN expressionList? RPAREN))
+			|  ((LPAREN expressionList? RPAREN))
 		       )
 		     )*;
 
@@ -63,7 +62,7 @@ evalRelationalExpression : concatenationExpr (
 			    (r=LT|r=GT|r=LE|r=GE)
 			    	(
 			    	  concatenationExpr
-			    	  | (g=ANY | g=SOME | g=ALL) ( (LPAREN expressionList? RPAREN))
+			    	  | ( (LPAREN expressionList? RPAREN))
 			    	)
 
 			  )*
@@ -120,61 +119,21 @@ stringconstant : sl=STRING_LITERAL
 keywordAllowedIdent : i1=IDENT
 		| i2=TICKED_STRING_LITERAL
 		| AT
-		| COUNT
 		| ESCAPE
-    		| EVERY_EXPR
-		| SCHEMA
 		| SUM
 		| AVG
 		| MAX
 		| MIN
-		| COALESCE
-		| MEDIAN
-		| STDDEV
-		| AVEDEV
-		| EVENTS
-		| FIRST
-		| LAST
-		| WHILE
-		| MERGE
-		| MATCHED
-		| UNIDIRECTIONAL
-		| RETAINUNION
-		| RETAININTERSECTION
 		| UNTIL
-		| PATTERN
-		| SQL
-		| METADATASQL
-		| PREVIOUS
-		| PREVIOUSTAIL
-		| PRIOR
 		| WEEKDAY
 		| LW
 		| INSTANCEOF
 		| TYPEOF
-		| CAST
-		| SNAPSHOT
-		| VARIABLE
-		| TABLE
-		| INDEX
-		| WINDOW
-		| LEFT
-		| RIGHT
-		| OUTER
-		| FULL
-		| JOIN
-		| DEFINE
-		| PARTITION
-		| MATCHES
-		| CONTEXT
-		| FOR
-		| USING;
+		| CAST;
 
 number : IntegerLiteral | FloatingPointLiteral;
 
 // Tokens
-CREATE:'create';
-WINDOW:'window';
 IN_SET:'in';
 BETWEEN:'between';
 LIKE:'like';
@@ -183,81 +142,22 @@ ESCAPE:'escape';
 OR_EXPR:'or';
 AND_EXPR:'and';
 NOT_EXPR:'not';
-EVERY_EXPR:'every';
-EVERY_DISTINCT_EXPR:'every-distinct';
 WHERE:'where';
 AS:'as';
 SUM:'sum';
 AVG:'avg';
 MAX:'max';
 MIN:'min';
-COALESCE:'coalesce';
-MEDIAN:'median';
-STDDEV:'stddev';
-AVEDEV:'avedev';
-COUNT:'count';
-SELECT:'select';
-CASE:'case';
-ELSE:'else';
-WHEN:'when';
-THEN:'then';
-END:'end';
-FROM:'from';
-OUTER:'outer';
-INNER:'inner';
-JOIN:'join';
-LEFT:'left';
-RIGHT:'right';
-FULL:'full';
 ON:'on';
 IS:'is';
-BY:'by';
-GROUP:'group';
-HAVING:'having';
-DISTINCT:'distinct';
-ALL:'all';
-ANY:'any';
-SOME:'some';
-OUTPUT:'output';
-EVENTS:'events';
-FIRST:'first';
-LAST:'last';
-INSERT:'insert';
-INTO:'into';
-VALUES:'values';
-ORDER:'order';
-ASC:'asc';
-DESC:'desc';
-RSTREAM:'rstream';
-ISTREAM:'istream';
-IRSTREAM:'irstream';
-SCHEMA:'schema';
-UNIDIRECTIONAL:'unidirectional';
-RETAINUNION:'retain-union';
-RETAININTERSECTION:'retain-intersection';
-PATTERN:'pattern';
-SQL:'sql';
-METADATASQL:'metadatasql';
-PREVIOUS:'prev';
-PREVIOUSTAIL:'prevtail';
-PREVIOUSCOUNT:'prevcount';
-PREVIOUSWINDOW:'prevwindow';
-PRIOR:'prior';
-EXISTS:'exists';
 WEEKDAY:'weekday';
 LW:'lastweekday';
 INSTANCEOF:'instanceof';
 TYPEOF:'typeof';
 CAST:'cast';
 CURRENT_TIMESTAMP:'current_timestamp';
-DELETE:'delete';
-SNAPSHOT:'snapshot';
-SET:'set';
-VARIABLE:'variable';
-TABLE:'table';
 UNTIL:'until';
 AT:'at';
-INDEX:'index';
 TIMEPERIOD_YEAR:'year';
 TIMEPERIOD_YEARS:'years';
 TIMEPERIOD_MONTH:'month';
@@ -282,42 +182,17 @@ TIMEPERIOD_MICROSECONDS:'microseconds';
 BOOLEAN_TRUE:'true';
 BOOLEAN_FALSE:'false';
 VALUE_NULL:'null';
-ROW_LIMIT_EXPR:'limit';
-OFFSET:'offset';
-UPDATE:'update';
-MATCH_RECOGNIZE:'match_recognize';
-MATCH_RECOGNIZE_PERMUTE:'match_recognize_permute';
-MEASURES:'measures';
-DEFINE:'define';
-PARTITION:'partition';
-MATCHES:'matches';
-AFTER:'after';
-FOR:'for';
-WHILE:'while';
-USING:'using';
-MERGE:'merge';
-MATCHED:'matched';
-EXPRESSIONDECL:'expression';
-NEWKW:'new';
-START:'start';
-CONTEXT:'context';
-INITIATED:'initiated';
-TERMINATED:'terminated';
-DATAFLOW:'dataflow';
-CUBE:'cube';
-ROLLUP:'rollup';
-GROUPING:'grouping';
-GROUPING_ID:'grouping_id';
-SETS:'sets';
+WITHIN: 'within';
+HOUR_SHORT: 'h';
+MINUTE_SHORT: 'm';
+SECOND_SHORT: 's';
+
 
 // Operators
-FOLLOWMAX_BEGIN : '-[';
-FOLLOWMAX_END   : ']>';
 FOLLOWED_BY 	: '->';
 FOLLOWED_BY_ANY : '->>';
 GOES 		: '=>';
 EQUALS 		: '=';
-SQL_NE 		: '<>';
 QUESTION 	: '?';
 LPAREN 		: '(';
 RPAREN 		: ')';
@@ -327,30 +202,21 @@ LCURLY 		: '{';
 RCURLY 		: '}';
 COLON 		: ':';
 COMMA 		: ',';
-EQUAL 		: '==';
 LNOT 		: '!';
 BNOT 		: '~';
 NOT_EQUAL 	: '!=';
 DIV 		: '/';
-DIV_ASSIGN 	: '/=';
 PLUS 		: '+';
-PLUS_ASSIGN	: '+=';
-INC 		: '++';
 MINUS 		: '-';
-MINUS_ASSIGN 	: '-=';
 DEC 		: '--';
 STAR 		: '*';
-STAR_ASSIGN 	: '*=';
 MOD 		: '%';
-MOD_ASSIGN 	: '%=';
 GE 		: '>=';
 GT 		: '>';
 LE 		: '<=';
 LT 		: '<';
 BXOR 		: '^';
-BXOR_ASSIGN 	: '^=';
 BOR		: '|';
-BOR_ASSIGN 	: '|=';
 LOR		: '||';
 BAND 		: '&';
 BAND_ASSIGN 	: '&=';
