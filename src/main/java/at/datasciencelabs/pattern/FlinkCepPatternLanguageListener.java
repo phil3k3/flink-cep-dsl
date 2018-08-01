@@ -17,6 +17,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
+    private boolean isTimeWindow;
 
     FlinkCepPatternLanguageListener() {
     }
@@ -86,11 +87,16 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         if (ctx.u.getText().equals("m")) {
             pattern = pattern.within(Time.minutes(Integer.parseInt(ctx.c.getText())));
         }
+        if (ctx.u.getText().equals("ms")) {
+			pattern = pattern.within(Time.milliseconds(Integer.parseInt(ctx.c.getText())));
+		}
+		isTimeWindow = true;
     }
 
     @Override
     public void exitTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
         super.exitTimeWindow(ctx);
+        isTimeWindow = false;
     }
 
     @Override
@@ -234,6 +240,9 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void exitNumberconstant(PatternLanguageParser.NumberconstantContext ctx) {
         super.exitNumberconstant(ctx);
         int timesOrValue = Integer.parseInt(ctx.getText());
+        if (isTimeWindow) {
+            return;
+        }
         if (this.expression != null) {
             this.expression.setValue(timesOrValue);
         }

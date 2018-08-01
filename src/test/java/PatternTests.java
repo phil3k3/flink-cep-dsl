@@ -1,24 +1,28 @@
-import at.datasciencelabs.pattern.Event;
-import at.datasciencelabs.pattern.Pattern;
-import org.apache.flink.cep.PatternSelectFunction;
-import org.apache.flink.cep.PatternStream;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
+import org.apache.flink.cep.PatternSelectFunction;
+import org.apache.flink.cep.PatternStream;
+import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
+import org.apache.flink.streaming.api.TimeCharacteristic;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.streaming.api.watermark.Watermark;
+import org.junit.Before;
+import org.junit.Test;
 
+import at.datasciencelabs.pattern.Event;
+import at.datasciencelabs.pattern.Pattern;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class PatternTests {
 
+    private static final int WATERMARK_OFFSET = 5;
     private static Map<String, List<Event>> results = new HashMap<>();
 
     @Before
@@ -355,79 +359,56 @@ public class PatternTests {
     }
 
     @Test
-    public void shouldEvaluateWithin() throws Exception {
-        TestEvent event = new TestEvent();
-        event.setAttribute("attribute", "testabc");
-        TestEvent event2 = new TestEvent();
-        event2.setAttribute("attribute", "testabc2");
-        event2.setAttribute("correlation_id", 10);
-
-        String pattern = "A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=10) within 3s";
-
-        StreamExecutionEnvironment streamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment();
-
-        DataStream<Event> eventDataStream = streamExecutionEnvironment.addSource(new SourceFunction<Event>() {
-
-            @Override
-            public void run(SourceContext<Event> sourceContext) throws Exception {
-                sourceContext.collect(event);
-                Thread.sleep(5000);
-                sourceContext.collect(event2);
-            }
-
-            @Override
-            public void cancel() {
-
-            }
-        });
-
-        PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
-
-        patternStream.select(new PatternSelectFunction<Event, Event>() {
-            @Override
-            public Event select(Map<String, List<Event>> map) throws Exception {
-                results.putAll(map);
-                return null;
-            }
-        });
-
-        streamExecutionEnvironment.execute("test");
-
-        assertThat(results.size(), is(0));
+    public void shouldEvaluateWithinTimeWindow() throws Exception {
+        shouldEvaluateWithinTimeWindowBase(6002L, 2);
     }
 
     @Test
-    public void shouldEvaluateWithin2() throws Exception {
+    public void shouldEvaluateWithinTimeout() throws Exception {
+        shouldEvaluateWithinTimeWindowBase(6005L, 0);
+    }
+
+    private void shouldEvaluateWithinTimeWindowBase(Long secondEventTimeStamp, int expected) throws Exception {
         TestEvent event = new TestEvent();
+        event.setAttribute("time", 6000L);
+        event.setAttribute("correlation_id", 10);
         event.setAttribute("attribute", "testabc");
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", "testabc2");
         event2.setAttribute("correlation_id", 10);
+        event2.setAttribute("time", secondEventTimeStamp);
 
-        String pattern = "A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=10) within 3s";
+        String pattern = "A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=A.correlation_id) within 3ms";
 
         StreamExecutionEnvironment streamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment();
+        streamExecutionEnvironment.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        streamExecutionEnvironment.setParallelism(1);
 
-        DataStream<Event> eventDataStream = streamExecutionEnvironment.addSource(new SourceFunction<Event>() {
+        DataStream<Event> eventDataStream = streamExecutionEnvironment.fromCollection(Arrays.asList(event, (Event)event2)).assignTimestampsAndWatermarks(new AssignerWithPunctuatedWatermarks<Event>() {
+            private static final long serialVersionUID = 1565707509951005766L;
 
+            @Nullable
             @Override
-            public void run(SourceContext<Event> sourceContext) throws Exception {
-                sourceContext.collect(event);
-                Thread.sleep(1000);
-                sourceContext.collect(event2);
+            public Watermark checkAndGetNextWatermark(Event event, long l) {
+                return event.getAttribute("time").map(attribute -> {
+					long watermark = (long)attribute;
+					return new Watermark(watermark - WATERMARK_OFFSET);
+				}).orElse(null);
             }
 
             @Override
-            public void cancel() {
-
+            public long extractTimestamp(Event event, long watermark) {
+                return event.getAttribute("time").map(attribute -> (long)attribute).orElse(0L);
             }
         });
 
         PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
 
         patternStream.select(new PatternSelectFunction<Event, Event>() {
+            private static final long serialVersionUID = 7242171752905668044L;
+
             @Override
-            public Event select(Map<String, List<Event>> map) throws Exception {
+            public Event select(Map<String, List<Event>> map) {
                 results.putAll(map);
                 return null;
             }
@@ -435,10 +416,8 @@ public class PatternTests {
 
         streamExecutionEnvironment.execute("test");
 
-        assertThat(results.size(), is(2));
+        assertThat(results.size(), is(expected));
     }
-
-
 
     private List<Event> generate(int amount) {
         List<Event> events = new ArrayList<>();
@@ -459,6 +438,8 @@ public class PatternTests {
         PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
 
         patternStream.select(new PatternSelectFunction<Event, Event>() {
+            private static final long serialVersionUID = 7242171752905668044L;
+
             @Override
             public Event select(Map<String, List<Event>> map) throws Exception {
                 results.putAll(map);
