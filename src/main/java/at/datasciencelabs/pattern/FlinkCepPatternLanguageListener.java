@@ -1,22 +1,28 @@
 package at.datasciencelabs.pattern;
 
-import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
-import at.datasciencelabs.pattern.generated.PatternLanguageParser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.flink.cep.nfa.AfterMatchSkipStrategy;
 import org.apache.flink.cep.pattern.Pattern;
+import org.apache.flink.streaming.api.windowing.time.Time;
+
+import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
+import at.datasciencelabs.pattern.generated.PatternLanguageParser;
 
 public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener {
 
     private Pattern<Event, Event> pattern;
     private Expression expression;
+    private AggregatingContextMatcher andExpressionContextMathcher;
     private AggregatingContextMatcher orAggregatingContextMatcher;
     private AggregatingContextMatcher currentExpressioList;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
+    private boolean isTimeWindow;
+    private boolean strictEventTypeMatching;
 
-    public FlinkCepPatternLanguageListener() {
+    FlinkCepPatternLanguageListener(boolean strictEventTypeMatching) {
+        this.strictEventTypeMatching = strictEventTypeMatching;
     }
 
     @Override
@@ -47,29 +53,60 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
                 pattern = pattern.next(ctx.getText());
             }
         }
+        andExpressionContextMathcher = AggregatingContextMatcher.and();
+        andExpressionContextMathcher.add(eventTypeMatcherFor(ctx.getText()));
+    }
+
+    private ContextMatcher eventTypeMatcherFor(String text) {
+        return strictEventTypeMatching ?
+                EventTypeContextMatcher.matching(text) :
+                EventTypeContextMatcher.ignoring();
     }
 
 
     @Override
     public void exitClassIdentifier(PatternLanguageParser.ClassIdentifierContext ctx) {
-        super.exitClassIdentifier(ctx);
     }
 
     @Override
     public void enterExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
         super.enterExpressionList(ctx);
-
     }
 
     @Override
     public void exitExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
         super.exitExpressionList(ctx);
+        andExpressionContextMathcher.add(orAggregatingContextMatcher);
     }
 
     @Override
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.enterEvalAndExpression(ctx);
         currentExpressioList = AggregatingContextMatcher.and();
+    }
+
+    @Override
+    public void enterTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
+        super.enterTimeWindow(ctx);
+        if (ctx.u.getText().equals("s")) {
+            pattern = pattern.within(Time.seconds(Integer.parseInt(ctx.c.getText())));
+        }
+        if (ctx.u.getText().endsWith("h")) {
+            pattern = pattern.within(Time.hours(Integer.parseInt(ctx.c.getText())));
+        }
+        if (ctx.u.getText().equals("m")) {
+            pattern = pattern.within(Time.minutes(Integer.parseInt(ctx.c.getText())));
+        }
+        if (ctx.u.getText().equals("ms")) {
+			pattern = pattern.within(Time.milliseconds(Integer.parseInt(ctx.c.getText())));
+		}
+		isTimeWindow = true;
+    }
+
+    @Override
+    public void exitTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
+        super.exitTimeWindow(ctx);
+        isTimeWindow = false;
     }
 
     @Override
@@ -89,7 +126,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.exitEvalOrExpression(ctx);
-        pattern = pattern.where(new EvaluationCondition(orAggregatingContextMatcher));
+        pattern = pattern.where(new EvaluationCondition(andExpressionContextMathcher));
     }
 
     @Override
@@ -193,26 +230,29 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     @Override
-    public void enterFollowedByRepeat(PatternLanguageParser.FollowedByRepeatContext ctx) {
-        super.enterFollowedByRepeat(ctx);
+    public void enterFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
+        super.enterFollowedBy(ctx);
         isFollowedBy = true;
     }
 
     @Override
-    public void enterFollowedByAnyRepeat(PatternLanguageParser.FollowedByAnyRepeatContext ctx) {
-        super.enterFollowedByAnyRepeat(ctx);
+    public void enterFollowedByAny(PatternLanguageParser.FollowedByAnyContext ctx) {
+        super.enterFollowedByAny(ctx);
         isFollowedByAny = true;
     }
 
     @Override
-    public void exitFollowedByRepeat(PatternLanguageParser.FollowedByRepeatContext ctx) {
-        super.exitFollowedByRepeat(ctx);
+    public void exitFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
+        super.exitFollowedBy(ctx);
     }
 
     @Override
     public void exitNumberconstant(PatternLanguageParser.NumberconstantContext ctx) {
         super.exitNumberconstant(ctx);
         int timesOrValue = Integer.parseInt(ctx.getText());
+        if (isTimeWindow) {
+            return;
+        }
         if (this.expression != null) {
             this.expression.setValue(timesOrValue);
         }

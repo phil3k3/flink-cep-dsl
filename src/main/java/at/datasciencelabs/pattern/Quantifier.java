@@ -2,7 +2,11 @@ package at.datasciencelabs.pattern;
 
 import org.apache.flink.cep.pattern.Pattern;
 
-public class Quantifier {
+/**
+ * Represents the quantifiers applicable to the pattern. Use
+ * {@link Quantifier.Builder} to create an instances.
+ */
+class Quantifier {
 
     private boolean oneOrMore;
     private boolean greedy;
@@ -11,6 +15,9 @@ public class Quantifier {
 
     private Integer lowerBound;
     private Integer upperBound;
+
+    private Quantifier() {
+    }
 
     public Pattern<Event, Event> apply(Pattern<Event, Event> pattern) {
         if (oneOrMore) {
