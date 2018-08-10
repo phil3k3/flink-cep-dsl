@@ -15,12 +15,12 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 import org.junit.Before;
 import org.junit.Test;
 
+import at.datasciencelabs.pattern.Dsl;
 import at.datasciencelabs.pattern.Event;
-import at.datasciencelabs.pattern.Pattern;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class PatternTests {
+public class DslTests {
 
     private static final int WATERMARK_OFFSET = 5;
     private static Map<String, List<Event>> results = new HashMap<>();
@@ -33,8 +33,10 @@ public class PatternTests {
     @Test
     public void shouldEvaluateNextPattern() throws Exception {
         TestEvent event = new TestEvent();
+        event.setEventType("A");
         event.setAttribute("attribute", "testabc");
         TestEvent event2 = new TestEvent();
+        event2.setEventType("B");
         event2.setAttribute("attribute", 30);
         executeTest("A(attribute='testabc') B(attribute=30)", Lists.newArrayList(event, event2));
 
@@ -58,9 +60,12 @@ public class PatternTests {
     public void shouldEvaluateFollowedByPattern() throws Exception {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", "testabc");
+        event.setEventType("A");
         TestEvent event2 = new TestEvent();
+        event2.setEventType("B");
         event2.setAttribute("attribute", "testabc2");
         TestEvent event3 = new TestEvent();
+        event3.setEventType("B");
         event3.setAttribute("attribute", 30);
         executeTest("A(attribute='testabc') -> B(attribute=30)", Lists.newArrayList(event, event2, event3));
 
@@ -151,8 +156,10 @@ public class PatternTests {
     public void shouldEvaluteZeroOrMoreTwoTestEvents() throws Exception {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", "testabc");
+        event.setEventType("A");
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", 30);
+        event2.setEventType("B");
 
         executeTest("A*(attribute='testabc') B(attribute=30)", Lists.newArrayList(event, event2));
 
@@ -167,6 +174,7 @@ public class PatternTests {
     public void shouldEvaluteZeroOrMoreOneTestEvent() throws Exception {
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", 30);
+        event2.setEventType("B");
 
         executeTest("A*(attribute='testabc') B(attribute=30)", Lists.newArrayList(event2));
 
@@ -180,6 +188,7 @@ public class PatternTests {
     public void shouldEvaluteOneOptionalOneTestEvent() throws Exception {
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", 30);
+        event2.setEventType("B");
 
         executeTest("A{1}(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
 
@@ -193,6 +202,7 @@ public class PatternTests {
     public void shouldEvaluteTwoOptionalOneTestEvent() throws Exception {
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", 30);
+        event2.setEventType("B");
 
         executeTest("A{2}(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
 
@@ -241,6 +251,7 @@ public class PatternTests {
     public void shouldEvaluateTimesOrMoreThreeGreedyOptional() throws Exception {
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", 30);
+        event2.setEventType("B");
 
         executeTest("A{2,+}?(attribute='testabc')? B(attribute=30)", Lists.newArrayList(event2));
 
@@ -253,10 +264,13 @@ public class PatternTests {
     @Test
     public void shouldEvaluateFollowedByAny() throws Exception {
         TestEvent event = new TestEvent();
+        event.setEventType("A");
         event.setAttribute("attribute", "testabc");
         TestEvent event2 = new TestEvent();
+        event2.setEventType("C");
         event2.setAttribute("attribute", "testabc2");
         TestEvent event3 = new TestEvent();
+        event3.setEventType("B");
         event3.setAttribute("attribute", 30);
 
         executeTest("A(attribute='testabc') ->> B(attribute=30)", Lists.newArrayList(event, event2, event3));
@@ -267,9 +281,11 @@ public class PatternTests {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", "testabc");
         event.setAttribute("correlation_id", 10);
+        event.setEventType("A");
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", "testabc2");
         event2.setAttribute("correlation_id", 10);
+        event2.setEventType("B");
 
         executeTest("A(attribute='testabc') -> B(attribute='testabc2' and correlation_id=A.correlation_id)", Lists.newArrayList(event, event2));
 
@@ -283,9 +299,11 @@ public class PatternTests {
     @Test
     public void shouldEvaluateAndExpression() throws Exception {
         TestEvent event = new TestEvent();
+        event.setEventType("A");
         event.setAttribute("attribute", "testabc");
         event.setAttribute("correlation_id", 10);
         TestEvent event2 = new TestEvent();
+        event2.setEventType("B");
         event2.setAttribute("attribute", "testabc2");
         event2.setAttribute("correlation_id", 10);
 
@@ -302,6 +320,7 @@ public class PatternTests {
     public void shouldEvaluateGreaterThan() throws Exception {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", 20);
+        event.setEventType("A");
 
         executeTest("A(attribute > 10)", Lists.newArrayList(event));
 
@@ -314,6 +333,7 @@ public class PatternTests {
     public void shouldEvaluateLowerThan() throws Exception {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", 5);
+        event.setEventType("A");
 
         executeTest("A(attribute < 10)", Lists.newArrayList(event));
 
@@ -326,6 +346,7 @@ public class PatternTests {
     public void shouldEvaluateLowerThanEquals() throws Exception {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", 10);
+        event.setEventType("A");
 
         executeTest("A(attribute <= 10)", Lists.newArrayList(event));
 
@@ -337,6 +358,7 @@ public class PatternTests {
     @Test
     public void shouldEvaluateGreaterThanEquals() throws Exception {
         TestEvent event = new TestEvent();
+        event.setEventType("A");
         event.setAttribute("attribute", 10);
 
         executeTest("A(attribute >= 10)", Lists.newArrayList(event));
@@ -350,6 +372,7 @@ public class PatternTests {
     public void shouldEvaluateNotEquals() throws Exception {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", 20);
+        event.setEventType("A");
 
         executeTest("A(attribute != 10)", Lists.newArrayList(event));
 
@@ -373,7 +396,9 @@ public class PatternTests {
         event.setAttribute("time", 6000L);
         event.setAttribute("correlation_id", 10);
         event.setAttribute("attribute", "testabc");
+        event.setEventType("A");
         TestEvent event2 = new TestEvent();
+        event2.setEventType("B");
         event2.setAttribute("attribute", "testabc2");
         event2.setAttribute("correlation_id", 10);
         event2.setAttribute("time", secondEventTimeStamp);
@@ -402,7 +427,7 @@ public class PatternTests {
             }
         });
 
-        PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
+        PatternStream<Event> patternStream = Dsl.withStrictEventTypeMatching().compile(pattern, eventDataStream);
 
         patternStream.select(new PatternSelectFunction<Event, Event>() {
             private static final long serialVersionUID = 7242171752905668044L;
@@ -423,6 +448,7 @@ public class PatternTests {
         List<Event> events = new ArrayList<>();
         for(int i = 0;  i < amount; i++) {
             TestEvent event = new TestEvent();
+            event.setEventType("A");
             event.setAttribute("attribute", "testabc");
             events.add(event);
         }
@@ -435,13 +461,13 @@ public class PatternTests {
 
         DataStream<Event> eventDataStream = streamExecutionEnvironment.fromCollection(data);
 
-        PatternStream<Event> patternStream = Pattern.transform(pattern, eventDataStream);
+        PatternStream<Event> patternStream = Dsl.compile(pattern, eventDataStream);
 
         patternStream.select(new PatternSelectFunction<Event, Event>() {
             private static final long serialVersionUID = 7242171752905668044L;
 
             @Override
-            public Event select(Map<String, List<Event>> map) throws Exception {
+            public Event select(Map<String, List<Event>> map) {
                 results.putAll(map);
                 return null;
             }

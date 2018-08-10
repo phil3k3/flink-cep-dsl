@@ -14,12 +14,11 @@ This is a maven project, so to build you simply:
 mvn install -DskipTests
 ```
 
-
 # Usage
 
 ```java
 DataStream<Event> eventDataStream = ...
-PatternStream<Event> patternStream = Pattern.transform("Sensor(temperature > 30)", eventDataStream);
+PatternStream<Event> patternStream = Dsl.compile("Sensor(temperature > 30)", eventDataStream);
 patternStream.select(new PatternSelectFunction<Event, Event>() {
                           @Override
                           public Event select(Map<String, List<Event>> map) throws Exception {

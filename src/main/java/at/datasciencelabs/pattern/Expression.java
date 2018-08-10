@@ -16,6 +16,7 @@ import java.util.function.Supplier;
  */
 class Expression implements Serializable, ContextMatcher {
 
+    private static final long serialVersionUID = 8876066124532249688L;
     private String attribute;
     private Operator operator;
     private Object value;

@@ -12,14 +12,17 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     private Pattern<Event, Event> pattern;
     private Expression expression;
+    private AggregatingContextMatcher andExpressionContextMathcher;
     private AggregatingContextMatcher orAggregatingContextMatcher;
     private AggregatingContextMatcher currentExpressioList;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
     private boolean isTimeWindow;
+    private boolean strictEventTypeMatching;
 
-    FlinkCepPatternLanguageListener() {
+    FlinkCepPatternLanguageListener(boolean strictEventTypeMatching) {
+        this.strictEventTypeMatching = strictEventTypeMatching;
     }
 
     @Override
@@ -50,23 +53,30 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
                 pattern = pattern.next(ctx.getText());
             }
         }
+        andExpressionContextMathcher = AggregatingContextMatcher.and();
+        andExpressionContextMathcher.add(eventTypeMatcherFor(ctx.getText()));
+    }
+
+    private ContextMatcher eventTypeMatcherFor(String text) {
+        return strictEventTypeMatching ?
+                EventTypeContextMatcher.matching(text) :
+                EventTypeContextMatcher.ignoring();
     }
 
 
     @Override
     public void exitClassIdentifier(PatternLanguageParser.ClassIdentifierContext ctx) {
-        super.exitClassIdentifier(ctx);
     }
 
     @Override
     public void enterExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
         super.enterExpressionList(ctx);
-
     }
 
     @Override
     public void exitExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
         super.exitExpressionList(ctx);
+        andExpressionContextMathcher.add(orAggregatingContextMatcher);
     }
 
     @Override
@@ -116,7 +126,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.exitEvalOrExpression(ctx);
-        pattern = pattern.where(new EvaluationCondition(orAggregatingContextMatcher));
+        pattern = pattern.where(new EvaluationCondition(andExpressionContextMathcher));
     }
 
     @Override
