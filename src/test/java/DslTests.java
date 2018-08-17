@@ -16,14 +16,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import at.datasciencelabs.pattern.Dsl;
-import at.datasciencelabs.pattern.Event;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class DslTests {
 
     private static final int WATERMARK_OFFSET = 5;
-    private static Map<String, List<Event>> results = new HashMap<>();
+    private static Map<String, List<TestEvent>> results = new HashMap<>();
 
     @Before
     public void onBefore() {
@@ -74,7 +73,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateTimes4() throws Exception {
-        List<Event> events = generate(4);
+        List<TestEvent> events = generate(4);
 
         executeTest("A{4}(attribute='testabc')", events);
 
@@ -85,7 +84,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateTimes4OrZero() throws Exception {
-        List<Event> events = generate(4);
+        List<TestEvent> events = generate(4);
 
         executeTest("A{4}(attribute='testabc')?", events);
 
@@ -96,7 +95,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateThreeForTwoThreeOrFour() throws Exception {
-        List<Event> events = generate(3);
+        List<TestEvent> events = generate(3);
 
         executeTest("A{2,4}(attribute='testabc')", events);
 
@@ -108,7 +107,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateTwoForTwoThreeOrFour() throws Exception {
-        List<Event> events = generate(2);
+        List<TestEvent> events = generate(2);
 
         executeTest("A{2,4}(attribute='testabc')", events);
 
@@ -120,7 +119,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateFourForTwoThreeOrFour() throws Exception {
-        List<Event> events = generate(4);
+        List<TestEvent> events = generate(4);
 
         executeTest("A{2,4}(attribute='testabc')", events);
 
@@ -132,7 +131,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateFourForTwoThreeOrFourGreedy() throws Exception {
-        List<Event> events = generate(4);
+        List<TestEvent> events = generate(4);
 
         executeTest("A{2,4}?(attribute='testabc')", events);
 
@@ -143,7 +142,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateZeroOrMoreOne() throws Exception {
-        List<Event> events = generate(1);
+        List<TestEvent> events = generate(1);
 
         executeTest("A*(attribute='testabc')", events);
 
@@ -214,7 +213,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateZeroOrMoreTwo() throws Exception {
-        List<Event> events = generate(2);
+        List<TestEvent> events = generate(2);
 
         executeTest("A*(attribute='testabc')", events);
 
@@ -226,7 +225,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateTimesOrMoreThree() throws Exception {
-        List<Event> events = generate(3);
+        List<TestEvent> events = generate(3);
 
         executeTest("A{2,+}(attribute='testabc')", events);
 
@@ -238,7 +237,7 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateTimesOrMoreThreeGreedy() throws Exception {
-        List<Event> events = generate(3);
+        List<TestEvent> events = generate(3);
 
         executeTest("A{2,+}?(attribute='testabc')", events);
 
@@ -409,12 +408,12 @@ public class DslTests {
         streamExecutionEnvironment.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         streamExecutionEnvironment.setParallelism(1);
 
-        DataStream<Event> eventDataStream = streamExecutionEnvironment.fromCollection(Arrays.asList(event, (Event)event2)).assignTimestampsAndWatermarks(new AssignerWithPunctuatedWatermarks<Event>() {
+        DataStream<TestEvent> eventDataStream = streamExecutionEnvironment.fromCollection(Arrays.asList(event, event2)).assignTimestampsAndWatermarks(new AssignerWithPunctuatedWatermarks<TestEvent>() {
             private static final long serialVersionUID = 1565707509951005766L;
 
             @Nullable
             @Override
-            public Watermark checkAndGetNextWatermark(Event event, long l) {
+            public Watermark checkAndGetNextWatermark(TestEvent event, long l) {
                 return event.getAttribute("time").map(attribute -> {
 					long watermark = (long)attribute;
 					return new Watermark(watermark - WATERMARK_OFFSET);
@@ -422,18 +421,18 @@ public class DslTests {
             }
 
             @Override
-            public long extractTimestamp(Event event, long watermark) {
+            public long extractTimestamp(TestEvent event, long watermark) {
                 return event.getAttribute("time").map(attribute -> (long)attribute).orElse(0L);
             }
         });
 
-        PatternStream<Event> patternStream = Dsl.withStrictEventTypeMatching().compile(pattern, eventDataStream);
+        PatternStream<TestEvent> patternStream = Dsl.withStrictEventTypeMatching().compile(pattern, eventDataStream);
 
-        patternStream.select(new PatternSelectFunction<Event, Event>() {
+        patternStream.select(new PatternSelectFunction<TestEvent, TestEvent>() {
             private static final long serialVersionUID = 7242171752905668044L;
 
             @Override
-            public Event select(Map<String, List<Event>> map) {
+            public TestEvent select(Map<String, List<TestEvent>> map) {
                 results.putAll(map);
                 return null;
             }
@@ -444,8 +443,8 @@ public class DslTests {
         assertThat(results.size(), is(expected));
     }
 
-    private List<Event> generate(int amount) {
-        List<Event> events = new ArrayList<>();
+    private List<TestEvent> generate(int amount) {
+        List<TestEvent> events = new ArrayList<>();
         for(int i = 0;  i < amount; i++) {
             TestEvent event = new TestEvent();
             event.setEventType("A");
@@ -455,19 +454,19 @@ public class DslTests {
         return events;
     }
 
-    private void executeTest(String pattern, List<Event> data) throws Exception {
+    private void executeTest(String pattern, List<TestEvent> data) throws Exception {
 
         StreamExecutionEnvironment streamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment();
 
-        DataStream<Event> eventDataStream = streamExecutionEnvironment.fromCollection(data);
+        DataStream<TestEvent> eventDataStream = streamExecutionEnvironment.fromCollection(data);
 
-        PatternStream<Event> patternStream = Dsl.compile(pattern, eventDataStream);
+        PatternStream<TestEvent> patternStream = Dsl.compile(pattern, eventDataStream);
 
-        patternStream.select(new PatternSelectFunction<Event, Event>() {
+        patternStream.select(new PatternSelectFunction<TestEvent, TestEvent>() {
             private static final long serialVersionUID = 7242171752905668044L;
 
             @Override
-            public Event select(Map<String, List<Event>> map) {
+            public TestEvent select(Map<String, List<TestEvent>> map) {
                 results.putAll(map);
                 return null;
             }

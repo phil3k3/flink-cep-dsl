@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.apache.flink.cep.CEP;
 import org.apache.flink.cep.PatternStream;
+import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
 /**
@@ -25,14 +26,14 @@ public class Dsl {
         return new DslBuilder(true);
     }
 
-    public static class DslBuilder {
+    public static class DslBuilder<T> {
         private boolean strictEventTypeMatching;
 
         DslBuilder(boolean strictEventTypeMatching) {
             this.strictEventTypeMatching = strictEventTypeMatching;
         }
 
-        public PatternStream<Event> compile(String expression, DataStream<Event> dataStream) {
+        public PatternStream<? extends Event> compile(String expression, DataStream<? extends Event> dataStream) {
             return Dsl.compile(expression, dataStream, strictEventTypeMatching);
         }
     }
@@ -44,11 +45,11 @@ public class Dsl {
      * @param dataStream The data stream which should be evaluated
      * @return The pattern stream providing the found patterns
      */
-    public static PatternStream<Event> compile(String expression, DataStream<Event> dataStream) {
+    public static <T extends Event> PatternStream<T> compile(String expression, DataStream<T> dataStream) {
         return Dsl.compile(expression, dataStream, false);
     }
 
-    private static PatternStream<Event> compile(String expression, DataStream<Event> dataStream, boolean strictEventTypeMatching) {
+    private static <T extends Event> PatternStream<T> compile(String expression, DataStream<T> dataStream, boolean strictEventTypeMatching) {
 
         CaseInsensitiveInputStream inputStream = new CaseInsensitiveInputStream(expression);
         PatternLanguageLexer lexer = new PatternLanguageLexer(inputStream);
@@ -61,6 +62,6 @@ public class Dsl {
         FlinkCepPatternLanguageListener listener = new FlinkCepPatternLanguageListener(strictEventTypeMatching);
         parseTreeWalker.walk(listener, parseTree);
 
-        return CEP.pattern(dataStream, listener.getPattern());
+        return CEP.pattern(dataStream, (Pattern<T, ?>) listener.getPattern());
     }
 }

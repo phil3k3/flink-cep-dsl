@@ -1,11 +1,13 @@
 import at.datasciencelabs.pattern.Event;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class TestEvent implements Event {
 
+    private static final long serialVersionUID = 7172608603091492969L;
     private Map<String, Object> attributes = new HashMap<>();
     private String eventType;
 
@@ -24,6 +26,11 @@ public class TestEvent implements Event {
     @Override
     public String getEventType() {
         return this.eventType;
+    }
+
+    @Override
+    public Instant getTimestamp() {
+        return null;
     }
 
     public void setEventType(String eventType) {

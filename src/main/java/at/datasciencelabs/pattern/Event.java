@@ -1,6 +1,7 @@
 package at.datasciencelabs.pattern;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -23,4 +24,10 @@ public interface Event extends Serializable {
      * @return The type of the event
      */
     String getEventType();
+
+    /**
+     * The timestamp of the event
+     */
+    Instant getTimestamp();
 }
+

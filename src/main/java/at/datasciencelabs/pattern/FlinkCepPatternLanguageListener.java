@@ -158,7 +158,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void exitEventPropertyIdent(PatternLanguageParser.EventPropertyIdentContext ctx) {
         super.exitEventPropertyIdent(ctx);
         if (expression.hasAttribute()) {
-            if (expression.hasValueClassIdentiifer()) {
+            if (expression.hasValueClassIdentifier()) {
                 expression.setValueAttribute(ctx.getText());
             }
             else {
@@ -351,7 +351,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         super.exitUpper_bound_unlimited(ctx);
     }
 
-    public Pattern<Event, Event> getPattern() {
+    public Pattern<? extends Event, ?> getPattern() {
         return pattern;
     }
 }

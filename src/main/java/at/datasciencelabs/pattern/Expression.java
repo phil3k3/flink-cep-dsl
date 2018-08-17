@@ -68,7 +68,7 @@ class Expression implements Serializable, ContextMatcher {
         this.valueClassIdentifier = valueClassIdentifier;
     }
 
-    boolean hasValueClassIdentiifer() {
+    boolean hasValueClassIdentifier() {
         return !Strings.isNullOrEmpty(valueClassIdentifier);
     }
 
