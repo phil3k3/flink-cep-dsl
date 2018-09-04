@@ -19,9 +19,9 @@ timeWindow: WITHIN c=numberconstant(u=HOUR_SHORT | u=MINUTE_SHORT | u=SECOND_SHO
 patternFilterExpression
     		: patternFilterExpressionOptional | patternFilterExpressionMandatory;
 patternFilterExpressionMandatory
-    		: (i=IDENT EQUALS)? classIdentifier quantifier? (LPAREN expressionList? RPAREN)?;
+    		: (i=IDENT EQUALS)? classIdentifier quantifier? expressionList?;
 patternFilterExpressionOptional
-    		: (i=IDENT EQUALS)? classIdentifier quantifier? (LPAREN expressionList? RPAREN)? QUESTION;
+    		: (i=IDENT EQUALS)? classIdentifier quantifier? expressionList? QUESTION;
 quantifier: plus_quantifier | star_quantifier | number_quantifier | number_quantifier_greedy;
 number_quantifier_greedy: s=LCURLY numberconstant upper_bound? t=RCURLY QUESTION;
 number_quantifier: s=LCURLY numberconstant upper_bound? t=RCURLY;
@@ -33,7 +33,7 @@ upper_bound_unlimited: k=PLUS;
 classIdentifier : i1=escapableStr (DOT i2=escapableStr)*;
 escapableStr : i1=IDENT | i3=TICKED_STRING_LITERAL;
 
-expressionList : expression;
+expressionList : (left=LPAREN expression? right=RPAREN) | (left=LBRACK expression? right=RBRACK);
 
 expression : evalOrExpression;
 
@@ -52,7 +52,7 @@ evalEqualsExpression : evalRelationalExpression (
 			     )
 		       (
 			evalRelationalExpression
-			|  ((LPAREN expressionList? RPAREN))
+			|  (expressionList)
 		       )
 		     )*;
 
@@ -62,7 +62,7 @@ evalRelationalExpression : concatenationExpr (
 			    (r=LT|r=GT|r=LE|r=GE)
 			    	(
 			    	  concatenationExpr
-			    	  | ( (LPAREN expressionList? RPAREN))
+			    	  | ( expressionList)
 			    	)
 
 			  )*

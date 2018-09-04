@@ -121,6 +121,22 @@ a -> b
 a ->> b
 ```
 
+## Where vs Until
+
+Flink supports a where clause as well as an until clause to define 
+a stop condition for a looping pattern.
+
+* Where
+```
+Sensor(temperature > 30)
+```
+
+* Until
+```
+Sensor[temperature <= 30]
+```
+
+
 ## Examples
 
 * Simple Condition

@@ -1,7 +1,7 @@
 package at.datasciencelabs.pattern;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.apache.flink.cep.nfa.AfterMatchSkipStrategy;
+import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
@@ -20,6 +20,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private Quantifier.Builder quantifierBuilder;
     private boolean isTimeWindow;
     private boolean strictEventTypeMatching;
+    private boolean isUntil;
+    private EvaluationCondition condition;
 
     FlinkCepPatternLanguageListener(boolean strictEventTypeMatching) {
         this.strictEventTypeMatching = strictEventTypeMatching;
@@ -70,6 +72,9 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     @Override
     public void enterExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
+        if (ctx.left.getText().equals("[")) {
+            isUntil = true;
+        }
         super.enterExpressionList(ctx);
     }
 
@@ -126,7 +131,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.exitEvalOrExpression(ctx);
-        pattern = pattern.where(new EvaluationCondition(andExpressionContextMathcher));
+        condition = new EvaluationCondition(andExpressionContextMathcher);
     }
 
     @Override
@@ -352,6 +357,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     public Pattern<Event, Event> getPattern() {
+        if (isUntil) {
+            pattern = pattern.until(condition);
+        }
+        else {
+            pattern = pattern.where(condition);
+        }
         return pattern;
     }
 }
