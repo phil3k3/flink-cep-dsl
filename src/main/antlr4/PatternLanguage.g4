@@ -7,19 +7,15 @@ package at.datasciencelabs.pattern.generated;
 
 
 startPatternExpressionRule : patternExpression EOF;
-patternExpression : orExpression (followedByOrNext)* timeWindow?;
-orExpression : andExpression (o=OR_EXPR andExpression)*;
-followedByOrNext : followedBy | followedByAny | orExpression;
-followedBy: f=FOLLOWED_BY orExpression;
-followedByAny: f=FOLLOWED_BY_ANY orExpression;
-andExpression :	qualifyExpression (a=AND_EXPR qualifyExpression)*;
-qualifyExpression : (n=NOT_EXPR)? guardPostFix;
-guardPostFix : patternFilterExpression | l=LPAREN patternExpression RPAREN;
+patternExpression : patternFilterExpression (followedByOrNext)* timeWindow?;
+followedByOrNext : followedBy | followedByAny | patternFilterExpression;
+followedBy: f=FOLLOWED_BY patternFilterExpression;
+followedByAny: f=FOLLOWED_BY_ANY patternFilterExpression;
 timeWindow: WITHIN c=numberconstant(u=HOUR_SHORT | u=MINUTE_SHORT | u=SECOND_SHORT | u=MILLSECONDS_SHORT);
 patternFilterExpression
     		: patternFilterExpressionOptional | patternFilterExpressionMandatory;
 patternFilterExpressionMandatory
-    		: (i=IDENT EQUALS)? classIdentifier quantifier? expressionList?;
+    		: (i=IDENT EQUALS)? classIdentifier quantifier? expressionList? stopCondition?;
 patternFilterExpressionOptional
     		: (i=IDENT EQUALS)? classIdentifier quantifier? expressionList? QUESTION;
 quantifier: plus_quantifier | star_quantifier | number_quantifier | number_quantifier_greedy;
@@ -33,7 +29,8 @@ upper_bound_unlimited: k=PLUS;
 classIdentifier : i1=escapableStr (DOT i2=escapableStr)*;
 escapableStr : i1=IDENT | i3=TICKED_STRING_LITERAL;
 
-expressionList : (left=LPAREN expression? right=RPAREN) | (left=LBRACK expression? right=RBRACK);
+stopCondition : (left=LBRACK expression? right=RBRACK);
+expressionList : (left=LPAREN expression? right=RPAREN);
 
 expression : evalOrExpression;
 

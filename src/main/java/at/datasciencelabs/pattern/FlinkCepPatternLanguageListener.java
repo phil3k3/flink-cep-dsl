@@ -12,16 +12,15 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     private Pattern<Event, Event> pattern;
     private Expression expression;
-    private AggregatingContextMatcher andExpressionContextMathcher;
     private AggregatingContextMatcher orAggregatingContextMatcher;
-    private AggregatingContextMatcher currentExpressioList;
+    private AggregatingContextMatcher currentExpressionList;
+    private AggregatingContextMatcher outerContextMatcher;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
     private boolean isTimeWindow;
     private boolean strictEventTypeMatching;
-    private boolean isUntil;
-    private EvaluationCondition condition;
+    private EvaluationCondition stopCondition;
 
     FlinkCepPatternLanguageListener(boolean strictEventTypeMatching) {
         this.strictEventTypeMatching = strictEventTypeMatching;
@@ -36,6 +35,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void exitEveryRule(ParserRuleContext ctx) {
         super.exitEveryRule(ctx);
     }
+
 
 
     @Override
@@ -55,9 +55,9 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
                 pattern = pattern.next(ctx.getText());
             }
         }
-        andExpressionContextMathcher = AggregatingContextMatcher.and();
-        andExpressionContextMathcher.add(eventTypeMatcherFor(ctx.getText()));
+        outerContextMatcher.add(eventTypeMatcherFor(ctx.getText()));
     }
+
 
     private ContextMatcher eventTypeMatcherFor(String text) {
         return strictEventTypeMatching ?
@@ -65,29 +65,22 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
                 EventTypeContextMatcher.ignoring();
     }
 
-
-    @Override
-    public void exitClassIdentifier(PatternLanguageParser.ClassIdentifierContext ctx) {
-    }
-
-    @Override
-    public void enterExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
-        if (ctx.left.getText().equals("[")) {
-            isUntil = true;
-        }
-        super.enterExpressionList(ctx);
-    }
-
     @Override
     public void exitExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
         super.exitExpressionList(ctx);
-        andExpressionContextMathcher.add(orAggregatingContextMatcher);
+        outerContextMatcher.add(orAggregatingContextMatcher);
+    }
+
+    @Override
+    public void exitStopCondition(PatternLanguageParser.StopConditionContext ctx) {
+        super.exitStopCondition(ctx);
+        stopCondition = new EvaluationCondition(orAggregatingContextMatcher);
     }
 
     @Override
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.enterEvalAndExpression(ctx);
-        currentExpressioList = AggregatingContextMatcher.and();
+        currentExpressionList = AggregatingContextMatcher.and();
     }
 
     @Override
@@ -117,21 +110,20 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
         super.exitEvalAndExpression(ctx);
-        orAggregatingContextMatcher.add(currentExpressioList);
-        currentExpressioList = orAggregatingContextMatcher;
+        orAggregatingContextMatcher.add(currentExpressionList);
+        currentExpressionList = orAggregatingContextMatcher;
     }
 
     @Override
     public void enterEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.enterEvalOrExpression(ctx);
         orAggregatingContextMatcher = AggregatingContextMatcher.or();
-        currentExpressioList = orAggregatingContextMatcher;
+        currentExpressionList = orAggregatingContextMatcher;
     }
 
     @Override
     public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
         super.exitEvalOrExpression(ctx);
-        condition = new EvaluationCondition(andExpressionContextMathcher);
     }
 
     @Override
@@ -185,6 +177,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         super.enterStringconstant(ctx);
     }
 
+
+
     @Override
     public void exitStringconstant(PatternLanguageParser.StringconstantContext ctx) {
         super.exitStringconstant(ctx);
@@ -194,6 +188,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitConstant(PatternLanguageParser.ConstantContext ctx) {
         super.exitConstant(ctx);
+        if ((true+"").equals(ctx.getText())) {
+            this.expression.setValue(true);
+        }
+        if ((false+"").equals(ctx.getText())) {
+            this.expression.setValue(false);
+        }
     }
 
 
@@ -207,6 +207,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         if (ctx.ne != null) {
             this.expression.setOperator(Operator.NOT_EQUALS);
         }
+    }
+
+
+    @Override
+    public void enterExpression(PatternLanguageParser.ExpressionContext ctx) {
+        super.enterExpression(ctx);
     }
 
     @Override
@@ -231,7 +237,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitEvalEqualsExpression(PatternLanguageParser.EvalEqualsExpressionContext ctx) {
         super.exitEvalEqualsExpression(ctx);
-        currentExpressioList.add(expression);
+        currentExpressionList.add(expression);
+        expression = null;
     }
 
     @Override
@@ -265,6 +272,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
             quantifierBuilder = quantifierBuilder.bound(timesOrValue);
         }
     }
+
+
 
     @Override
     public void enterQuantifier(PatternLanguageParser.QuantifierContext ctx) {
@@ -336,11 +345,13 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void enterPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx) {
         super.enterPatternFilterExpression(ctx);
         this.quantifierBuilder = new Quantifier.Builder();
+        this.outerContextMatcher = AggregatingContextMatcher.and();
     }
 
     @Override
     public void exitPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx) {
         super.exitPatternFilterExpression(ctx);
+        pattern = pattern.where(new EvaluationCondition(outerContextMatcher));
         this.pattern = this.quantifierBuilder.build().apply(pattern);
     }
 
@@ -357,11 +368,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     public Pattern<Event, Event> getPattern() {
-        if (isUntil) {
-            pattern = pattern.until(condition);
-        }
-        else {
-            pattern = pattern.where(condition);
+        if (stopCondition != null) {
+            pattern = pattern.until(stopCondition);
         }
         return pattern;
     }

@@ -7,6 +7,7 @@ import org.apache.flink.cep.pattern.conditions.IterativeCondition;
  */
 public class EvaluationCondition extends IterativeCondition<Event> {
 
+    private static final long serialVersionUID = -2634553039575827744L;
     private AggregatingContextMatcher contextMatchers;
 
     EvaluationCondition(AggregatingContextMatcher contextMatchers) {

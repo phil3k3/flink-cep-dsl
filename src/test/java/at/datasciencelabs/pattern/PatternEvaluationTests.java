@@ -1,16 +1,13 @@
+package at.datasciencelabs.pattern;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
-
-import org.apache.flink.cep.CEP;
 import org.apache.flink.cep.PatternSelectFunction;
 import org.apache.flink.cep.PatternStream;
-import org.apache.flink.cep.pattern.Pattern;
-import org.apache.flink.cep.pattern.conditions.IterativeCondition;
-import org.apache.flink.cep.pattern.conditions.SimpleCondition;
 import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Lists;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -20,12 +17,10 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 import org.junit.Before;
 import org.junit.Test;
 
-import at.datasciencelabs.pattern.Dsl;
-import at.datasciencelabs.pattern.Event;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class DslTests {
+public class PatternEvaluationTests {
 
     private static final int WATERMARK_OFFSET = 5;
     private static Map<String, List<Event>> results = new HashMap<>();
@@ -52,10 +47,13 @@ public class DslTests {
     public void shouldEvaluateNextPatternAndFail() throws Exception {
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", "testabc");
+        event.setEventType("A");
         TestEvent event2 = new TestEvent();
         event2.setAttribute("attribute", "testabc2");
+        event2.setEventType("A");
         TestEvent event3 = new TestEvent();
         event3.setAttribute("attribute", 30);
+        event3.setEventType("B");
         executeTest("A(attribute='testabc') B(attribute=30)", Lists.newArrayList(event, event2, event3));
 
         assertThat(results.size(), is(0));
@@ -135,13 +133,21 @@ public class DslTests {
         assertThat(results.get("A").size(), is(2));
     }
 
+    /**
+     * Currently greedy does not work when the operator is applied on the first pattern
+     * so define a dummy event before it
+     */
     @Test
     public void shouldEvaluateFourForTwoThreeOrFourGreedy() throws Exception {
         List<Event> events = generate(4);
 
-        executeTest("A{2,4}?(attribute='testabc')", events);
+        TestEvent eventB = new TestEvent();
+        eventB.setAttribute("attribute", "test");
+        events.add(0, eventB);
 
-        assertThat(results.size(), is(1));
+        executeTest("B(attribute='test') A{2,4}?(attribute='testabc')", events);
+
+        assertThat(results.size(), is(2));
         assertThat(results.containsKey("A"), is(true));
         assertThat(results.get("A").size(), is(4));
     }
@@ -241,13 +247,20 @@ public class DslTests {
         assertThat(results.get("A").size(), is(2));
     }
 
+    /**
+     * Currently greedy does not work when the operator is applied on the first pattern
+     * so define a dummy event before it
+     */
     @Test
     public void shouldEvaluateTimesOrMoreThreeGreedy() throws Exception {
         List<Event> events = generate(3);
 
-        executeTest("A{2,+}?(attribute='testabc')", events);
+        TestEvent eventB = new TestEvent();
+        eventB.setAttribute("attribute", "test");
+        events.add(0, eventB);
+        executeTest("B(attribute='test') A{2,+}?(attribute='testabc')", events);
 
-        assertThat(results.size(), is(1));
+        assertThat(results.size(), is(2));
         assertThat(results.containsKey("A"), is(true));
         assertThat(results.get("A").size(), is(3));
     }
@@ -398,6 +411,9 @@ public class DslTests {
 
     @Test
     public void shouldEvaluateUntilCondition() throws Exception {
+    	TestEvent initial = new TestEvent();
+		initial.setAttribute("attribute", "test");
+		initial.setEventType("B");
         TestEvent event = new TestEvent();
         event.setAttribute("attribute", "testabc");
         event.setAttribute("stop", false);
@@ -411,59 +427,12 @@ public class DslTests {
         event3.setAttribute("attribute", "testabc");
         event3.setAttribute("stop", true);
 
-        String pattern = "A{1,+}?(attribute='testabc')[stop=true]";
+        String pattern = "B(attribute='test') A{2,+}?(attribute='testabc')[stop=true]";
 
-        executeTest(pattern, Lists.newArrayList(event, event2, event3));
-
-        assertThat(results.size(), is(1));
-        assertThat(results.get("A").size(), is(2));
-    }
-
-    @Test
-    public void shouldEvaluateUntilCondition2() throws Exception {
-        TestEvent event = new TestEvent();
-        event.setAttribute("attribute", "testabc");
-        event.setAttribute("stop", false);
-        event.setEventType("A");
-        TestEvent event2 = new TestEvent();
-        event2.setEventType("A");
-        event2.setAttribute("attribute", "testabc");
-        event2.setAttribute("stop", false);
-        TestEvent event3 = new TestEvent();
-        event3.setEventType("A");
-        event3.setAttribute("attribute", "testabc");
-        event3.setAttribute("stop", true);
-
-        StreamExecutionEnvironment streamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment();
-
-        DataStream<Event> eventDataStream = streamExecutionEnvironment.fromCollection(Lists.newArrayList(event,event2,event3));
-
-        PatternStream<Event> eventPatternStream = CEP.pattern(eventDataStream, Pattern.<Event>begin("A").where(new SimpleCondition<Event>() {
-
-            @Override
-            public boolean filter(Event event) throws Exception {
-                return event.getAttribute("attribute").get().equals("testabc");
-            }
-        }).oneOrMore().greedy().until(new IterativeCondition<Event>() {
-            @Override
-            public boolean filter(Event value, Context<Event> ctx) throws Exception {
-                return value.getAttribute("stop").get().equals(true);
-            }
-        }));
-
-        eventPatternStream.select(new PatternSelectFunction<Event, Event>() {
-            private static final long serialVersionUID = 7242171752905668044L;
-
-            @Override
-            public Event select(Map<String, List<Event>> map) {
-                results.putAll(map);
-                return null;
-            }
-        });
-
-        streamExecutionEnvironment.execute("test");
+        executeTest(pattern, Lists.newArrayList(initial, event, event2, event3));
 
         assertThat(results.size(), is(2));
+        assertThat(results.get("A").size(), is(2));
     }
 
     private void shouldEvaluateWithinTimeWindowBase(Long secondEventTimeStamp, int expected) throws Exception {

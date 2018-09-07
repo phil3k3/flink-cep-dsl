@@ -1,4 +1,4 @@
-import at.datasciencelabs.pattern.Event;
+package at.datasciencelabs.pattern;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -6,6 +6,7 @@ import java.util.Optional;
 
 public class TestEvent implements Event {
 
+    private static final long serialVersionUID = 5458760078762352571L;
     private Map<String, Object> attributes = new HashMap<>();
     private String eventType;
 
