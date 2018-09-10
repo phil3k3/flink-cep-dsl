@@ -121,6 +121,27 @@ a -> b
 a ->> b
 ```
 
+## Where vs Until
+
+Flink supports a where clause as well as an until clause to define 
+a stop condition for a looping pattern.
+
+* Where
+```
+Sensor(temperature > 30)
+```
+
+* Until
+```
+Sensor[temperature <= 30]
+```
+
+The two operators can also be combined.
+
+```
+Sensor(temperature > 30)[resolved=false]
+```
+
 ## Examples
 
 * Simple Condition
@@ -137,5 +158,17 @@ Sensor1(temperature > 30) -> Sensor2(temperature > 50 and id=Sensor1.id)
  
 ## Known Issues
  
-Currently the greedy tests fail due to an issue in Flink 1.4.0:
-https://issues.apache.org/jira/browse/FLINK-8914
+Currently the greedy operator does not work when applied to the first event
+in the pattern. 
+
+Works
+```
+TransportStarted(destination = 'Vienna') LocationUpdate{1,+}?(destination=TransportStarted.destination) TransportEnded(destination=TransportStarted.destination)
+```
+
+Does not Work
+```
+LocationUpdate{1,+}?(destination=TransportStarted.destination) TransportEnded(destination=TransportStarted.destination)
+```
+
+See https://issues.apache.org/jira/browse/FLINK-8914 for details.
