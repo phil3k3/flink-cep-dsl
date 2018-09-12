@@ -1,5 +1,8 @@
 package at.datasciencelabs.pattern;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import org.apache.flink.cep.pattern.Pattern;
@@ -17,10 +20,25 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private AggregatingContextMatcher outerContextMatcher;
     private boolean isFollowedBy;
     private boolean isFollowedByAny;
+    private boolean isNotFollowedBy;
+    private boolean isNotNext;
     private Quantifier.Builder quantifierBuilder;
     private boolean isTimeWindow;
     private boolean strictEventTypeMatching;
     private EvaluationCondition stopCondition;
+    private static Map<String,Function<String,AfterMatchSkipStrategy>> skipStrategies;
+
+    static {
+        skipStrategies = new HashMap<>();
+        skipStrategies.put("#NO_SKIP", (m) -> AfterMatchSkipStrategy.noSkip());
+        skipStrategies.put("#SKIP_PAST_LAST", (m) -> AfterMatchSkipStrategy.skipPastLastEvent());
+        skipStrategies.put("#SKIP_TO_LAST", AfterMatchSkipStrategy::skipToLast);
+        skipStrategies.put("#SKIP_TO_FIRST", AfterMatchSkipStrategy::skipToFirst);
+    }
+
+    private boolean isSkipStrategy;
+    private String skipStrategyClass;
+    private AfterMatchSkipStrategy afterMatchSkipStrategy = AfterMatchSkipStrategy.noSkip();
 
     FlinkCepPatternLanguageListener(boolean strictEventTypeMatching) {
         this.strictEventTypeMatching = strictEventTypeMatching;
@@ -36,13 +54,18 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         super.exitEveryRule(ctx);
     }
 
-
+    @Override
+    public void enterFollowedByOrNext(PatternLanguageParser.FollowedByOrNextContext ctx) {
+        if (ctx.f != null && "!".equals(ctx.f.getText())) {
+            isNotNext = true;
+        }
+    }
 
     @Override
     public void enterClassIdentifier(PatternLanguageParser.ClassIdentifierContext ctx) {
         super.enterClassIdentifier(ctx);
         if (pattern == null) {
-            pattern = Pattern.begin(ctx.getText(), AfterMatchSkipStrategy.noSkip());
+            pattern = Pattern.begin(ctx.getText(), afterMatchSkipStrategy);
         }
         else {
             if (isFollowedBy) {
@@ -50,6 +73,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
             }
             else if (isFollowedByAny) {
                 pattern = pattern.followedByAny(ctx.getText());
+            }
+            else if (isNotFollowedBy) {
+                pattern = pattern.notFollowedBy(ctx.getText());
+            }
+            else if (isNotNext) {
+                pattern = pattern.notNext(ctx.getText());
             }
             else {
                 pattern = pattern.next(ctx.getText());
@@ -182,7 +211,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitStringconstant(PatternLanguageParser.StringconstantContext ctx) {
         super.exitStringconstant(ctx);
-        expression.setValue(ctx.getText().substring(1, ctx.getText().length()-1));
+        String substring = ctx.getText().substring(1, ctx.getText().length() - 1);
+        if (isSkipStrategy) {
+            skipStrategyClass = substring;
+            return;
+        }
+        expression.setValue(substring);
     }
 
     @Override
@@ -245,6 +279,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     public void enterFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
         super.enterFollowedBy(ctx);
         isFollowedBy = true;
+    }
+
+    @Override
+    public void enterNotFollowedBy(PatternLanguageParser.NotFollowedByContext ctx) {
+        super.enterNotFollowedBy(ctx);
+        isNotFollowedBy = true;
     }
 
     @Override
@@ -322,6 +362,17 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx) {
         super.exitPlus_quantifier(ctx);
+    }
+
+    @Override
+    public void enterSkipStrategy(PatternLanguageParser.SkipStrategyContext ctx) {
+        isSkipStrategy = true;
+    }
+
+    @Override
+    public void exitSkipStrategy(PatternLanguageParser.SkipStrategyContext ctx) {
+        isSkipStrategy = false;
+        afterMatchSkipStrategy = skipStrategies.get(ctx.s.getText()).apply(skipStrategyClass);
     }
 
     @Override
