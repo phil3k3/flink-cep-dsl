@@ -2,6 +2,9 @@ package at.datasciencelabs.pattern;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Stack;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy;
@@ -18,15 +21,16 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private AggregatingContextMatcher orAggregatingContextMatcher;
     private AggregatingContextMatcher currentExpressionList;
     private AggregatingContextMatcher outerContextMatcher;
-    private boolean isFollowedBy;
-    private boolean isFollowedByAny;
-    private boolean isNotFollowedBy;
-    private boolean isNotNext;
     private Quantifier.Builder quantifierBuilder;
     private boolean isTimeWindow;
     private boolean strictEventTypeMatching;
     private EvaluationCondition stopCondition;
     private static Map<String,Function<String,AfterMatchSkipStrategy>> skipStrategies;
+    private static Map<String,BiFunction<Integer,Pattern<Event,Event>,Pattern<Event,Event>>> timeWindowAppliers;
+    private PatternCombiner patternCombiner;
+    private Stack<BiConsumer<FlinkCepPatternLanguageListener, Integer>> numberConstantApplier = new Stack<>();
+    private Stack<StringConstantApplier> stringConstantApplier = new Stack<>();
+
 
     static {
         skipStrategies = new HashMap<>();
@@ -34,6 +38,11 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         skipStrategies.put("#SKIP_PAST_LAST", (m) -> AfterMatchSkipStrategy.skipPastLastEvent());
         skipStrategies.put("#SKIP_TO_LAST", AfterMatchSkipStrategy::skipToLast);
         skipStrategies.put("#SKIP_TO_FIRST", AfterMatchSkipStrategy::skipToFirst);
+
+        timeWindowAppliers.put("s", (v,p) -> p.within(Time.seconds(v)));
+        timeWindowAppliers.put("h", (v,p) -> p.within(Time.hours(v)));
+        timeWindowAppliers.put("m", (v,p) -> p.within(Time.minutes(v)));
+        timeWindowAppliers.put("ms", (v,p) -> p.within(Time.milliseconds(v)));
     }
 
     private boolean isSkipStrategy;
@@ -57,7 +66,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void enterFollowedByOrNext(PatternLanguageParser.FollowedByOrNextContext ctx) {
         if (ctx.f != null && "!".equals(ctx.f.getText())) {
-            isNotNext = true;
+            patternCombiner = Pattern::notNext;
         }
     }
 
@@ -68,21 +77,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
             pattern = Pattern.begin(ctx.getText(), afterMatchSkipStrategy);
         }
         else {
-            if (isFollowedBy) {
-                pattern = pattern.followedBy(ctx.getText());
-            }
-            else if (isFollowedByAny) {
-                pattern = pattern.followedByAny(ctx.getText());
-            }
-            else if (isNotFollowedBy) {
-                pattern = pattern.notFollowedBy(ctx.getText());
-            }
-            else if (isNotNext) {
-                pattern = pattern.notNext(ctx.getText());
-            }
-            else {
-                pattern = pattern.next(ctx.getText());
-            }
+            pattern = patternCombiner.combine(pattern,ctx.getText());
         }
         outerContextMatcher.add(eventTypeMatcherFor(ctx.getText()));
     }
@@ -115,25 +110,14 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void enterTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
         super.enterTimeWindow(ctx);
-        if (ctx.u.getText().equals("s")) {
-            pattern = pattern.within(Time.seconds(Integer.parseInt(ctx.c.getText())));
-        }
-        if (ctx.u.getText().endsWith("h")) {
-            pattern = pattern.within(Time.hours(Integer.parseInt(ctx.c.getText())));
-        }
-        if (ctx.u.getText().equals("m")) {
-            pattern = pattern.within(Time.minutes(Integer.parseInt(ctx.c.getText())));
-        }
-        if (ctx.u.getText().equals("ms")) {
-			pattern = pattern.within(Time.milliseconds(Integer.parseInt(ctx.c.getText())));
-		}
-		isTimeWindow = true;
+        pattern = timeWindowAppliers.get(ctx.u.getText()).apply(Integer.parseInt(ctx.c.getText()), pattern);
+		numberConstantApplier.push((l,v) -> {});
     }
 
     @Override
     public void exitTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
         super.exitTimeWindow(ctx);
-        isTimeWindow = false;
+        numberConstantApplier.pop();
     }
 
     @Override
@@ -241,6 +225,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         if (ctx.ne != null) {
             this.expression.setOperator(Operator.NOT_EQUALS);
         }
+        numberConstantApplier.push((t,v) -> t.expression.setValue(v));
     }
 
 
@@ -273,42 +258,34 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         super.exitEvalEqualsExpression(ctx);
         currentExpressionList.add(expression);
         expression = null;
+        numberConstantApplier.pop();
     }
 
     @Override
     public void enterFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
         super.enterFollowedBy(ctx);
-        isFollowedBy = true;
+        patternCombiner = Pattern::followedBy;
     }
 
     @Override
     public void enterNotFollowedBy(PatternLanguageParser.NotFollowedByContext ctx) {
         super.enterNotFollowedBy(ctx);
-        isNotFollowedBy = true;
+        patternCombiner = Pattern::notFollowedBy;
     }
 
     @Override
     public void enterFollowedByAny(PatternLanguageParser.FollowedByAnyContext ctx) {
         super.enterFollowedByAny(ctx);
-        isFollowedByAny = true;
-    }
-
-    @Override
-    public void exitFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
-        super.exitFollowedBy(ctx);
+        patternCombiner = Pattern::followedByAny;
     }
 
     @Override
     public void exitNumberconstant(PatternLanguageParser.NumberconstantContext ctx) {
         super.exitNumberconstant(ctx);
         int timesOrValue = Integer.parseInt(ctx.getText());
-        if (isTimeWindow) {
-            return;
-        }
-        if (this.expression != null) {
-            this.expression.setValue(timesOrValue);
-        }
-        else {
+        numberConstantApplier.peek().accept(this, timesOrValue);
+
+
             quantifierBuilder = quantifierBuilder.bound(timesOrValue);
         }
     }
@@ -397,6 +374,7 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         super.enterPatternFilterExpression(ctx);
         this.quantifierBuilder = new Quantifier.Builder();
         this.outerContextMatcher = AggregatingContextMatcher.and();
+        this.numberConstantApplier.push((t,v) -> quantifierBuilder)
     }
 
     @Override
