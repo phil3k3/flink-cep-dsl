@@ -5,13 +5,13 @@ import org.apache.flink.cep.PatternStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 class PatternExecutor {
 
-    static Map<String, List<Event>> results = new HashMap<>();
+    static List<Map<String, List<Event>>> results = new ArrayList<>();
 
     static void executeTest(String pattern, List<Event> data) throws Exception {
 
@@ -26,7 +26,7 @@ class PatternExecutor {
 
             @Override
             public Event select(Map<String, List<Event>> map) {
-                results.putAll(map);
+                results.add(map);
                 return null;
             }
         });
