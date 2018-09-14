@@ -1,17 +1,19 @@
 package at.datasciencelabs.pattern;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Stack;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
+import at.datasciencelabs.pattern.generated.PatternLanguageParser;
+import org.antlr.v4.runtime.Token;
 import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
-import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
-import at.datasciencelabs.pattern.generated.PatternLanguageParser;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Stack;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener {
 
@@ -32,10 +34,10 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     static {
         skipStrategies = new HashMap<>();
-        skipStrategies.put("#NO_SKIP", (m) -> AfterMatchSkipStrategy.noSkip());
-        skipStrategies.put("#SKIP_PAST_LAST", (m) -> AfterMatchSkipStrategy.skipPastLastEvent());
-        skipStrategies.put("#SKIP_TO_LAST", AfterMatchSkipStrategy::skipToLast);
-        skipStrategies.put("#SKIP_TO_FIRST", AfterMatchSkipStrategy::skipToFirst);
+        skipStrategies.put("NO_SKIP", (m) -> AfterMatchSkipStrategy.noSkip());
+        skipStrategies.put("SKIP_PAST_LAST", (m) -> AfterMatchSkipStrategy.skipPastLastEvent());
+        skipStrategies.put("SKIP_TO_LAST", AfterMatchSkipStrategy::skipToLast);
+        skipStrategies.put("SKIP_TO_FIRST", AfterMatchSkipStrategy::skipToFirst);
 
         timeWindowAppliers.put("s", (v,p) -> p.within(Time.seconds(v)));
         timeWindowAppliers.put("h", (v,p) -> p.within(Time.hours(v)));
@@ -48,6 +50,11 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     FlinkCepPatternLanguageListener(boolean strictEventTypeMatching) {
         this.strictEventTypeMatching = strictEventTypeMatching;
+    }
+
+    @Override
+    public void enterPatternExpression(PatternLanguageParser.PatternExpressionContext ctx) {
+        super.enterPatternExpression(ctx);
     }
 
     @Override
@@ -216,7 +223,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     @Override
     public void exitSkipStrategy(PatternLanguageParser.SkipStrategyContext ctx) {
         stringConstantApplier.pop();
-        afterMatchSkipStrategy = skipStrategies.get(ctx.s.getText()).apply(skipStrategyClass);
+        String text = Optional.ofNullable(ctx.s).map(Token::getText).orElse("");
+        afterMatchSkipStrategy = skipStrategies.get(text).apply(skipStrategyClass);
     }
 
     @Override

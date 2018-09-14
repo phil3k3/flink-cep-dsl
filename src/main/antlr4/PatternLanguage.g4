@@ -7,8 +7,8 @@ package at.datasciencelabs.pattern.generated;
 
 
 startPatternExpressionRule : patternExpression EOF;
-patternExpression : skipStrategy? patternFilterExpression (followedByOrNext)* timeWindow?;
-skipStrategy: (s=SKIP_NO_SKIP) | (s=SKIP_SKIP_PAST_LAST) | (s=SKIP_SKIP_TO_FIRST)(k=LBRACK)stringconstant(m=RBRACK) | (s=SKIP_SKIP_TO_LAST)(k=LBRACK)stringconstant(m=RBRACK);
+patternExpression : skipStrategy patternFilterExpression (followedByOrNext)* timeWindow?;
+skipStrategy: MOD ((s=SKIP_NO_SKIP) | (s=SKIP_SKIP_PAST_LAST) | s=SKIP_SKIP_TO_FIRST k=LBRACK stringconstant m=RBRACK | s=SKIP_SKIP_TO_LAST k=LBRACK stringconstant m=RBRACK);
 followedByOrNext : followedBy | followedByAny | notFollowedBy | (f=LNOT)? patternFilterExpression;
 followedBy: f=FOLLOWED_BY patternFilterExpression;
 followedByAny: f=FOLLOWED_BY_ANY patternFilterExpression;
@@ -133,10 +133,10 @@ keywordAllowedIdent : i1=IDENT
 number : IntegerLiteral | FloatingPointLiteral;
 
 // Tokens
-SKIP_NO_SKIP: '#NO_SKIP';
-SKIP_SKIP_PAST_LAST: '#SKIP_PAST_LAST';
-SKIP_SKIP_TO_FIRST: '#SKIP_TO_FIRST';
-SKIP_SKIP_TO_LAST: '#SKIP_TO_LAST';
+SKIP_NO_SKIP: 'no_skip';
+SKIP_SKIP_PAST_LAST: 'skip_past_last';
+SKIP_SKIP_TO_FIRST: 'skip_to_first';
+SKIP_SKIP_TO_LAST: 'skip_to_last';
 IN_SET:'in';
 BETWEEN:'between';
 LIKE:'like';
