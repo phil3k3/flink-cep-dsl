@@ -11,19 +11,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class SkipStrategiesTest {
 
+    private List<Event> events;
+
     @Before
     public void before() {
         PatternExecutor.results.clear();
-    }
-
-    @Test
-    public void skipPastLastEvent() throws Exception {
-        List<Event> events = new ArrayList<>();
+        events = new ArrayList<>();
         events.add(createA());
         events.add(createA());
         events.add(createA());
         events.add(createB());
+    }
 
+    @Test
+    public void skipPastLastEvent() throws Exception {
         String patternDsl = "%SKIP_PAST_LAST\nA+(attribute='testabc') B(attribute=30)";
         PatternExecutor.executeTest(patternDsl, events);
 
@@ -35,12 +36,6 @@ public class SkipStrategiesTest {
 
     @Test
     public void skipNoSkip() throws Exception {
-        List<Event> events = new ArrayList<>();
-        events.add(createA());
-        events.add(createA());
-        events.add(createA());
-        events.add(createB());
-
         String patternDsl = "%NO_SKIP\nA+(attribute='testabc') B(attribute=30)";
         PatternExecutor.executeTest(patternDsl, events);
 
@@ -60,12 +55,6 @@ public class SkipStrategiesTest {
 
     @Test
     public void skipToFirst() throws Exception {
-        List<Event> events = new ArrayList<>();
-        events.add(createA());
-        events.add(createA());
-        events.add(createA());
-        events.add(createB());
-
         String patternDsl = "%SKIP_TO_FIRST['A']\nA+(attribute='testabc') B(attribute=30)";
         PatternExecutor.executeTest(patternDsl, events);
 
@@ -85,12 +74,6 @@ public class SkipStrategiesTest {
 
     @Test
     public void skipToLast() throws Exception {
-        List<Event> events = new ArrayList<>();
-        events.add(createA());
-        events.add(createA());
-        events.add(createA());
-        events.add(createB());
-
         String patternDsl = "%SKIP_TO_LAST['A']\nA+(attribute='testabc') B(attribute=30)";
         PatternExecutor.executeTest(patternDsl, events);
 
