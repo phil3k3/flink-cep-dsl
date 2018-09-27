@@ -427,12 +427,22 @@ public class PatternEvaluationTests {
         event3.setAttribute("attribute", "testabc");
         event3.setAttribute("stop", true);
 
-        String pattern = "B(attribute='test') A{2,+}?(attribute='testabc')[stop=true]";
+        String pattern = " B(attribute='test') A{2,+}?(attribute='testabc')[stop=true]";
 
         executeTest(pattern, Lists.newArrayList(initial, event, event2, event3));
 
         assertThat(results.size(), is(2));
         assertThat(results.get("A").size(), is(2));
+    }
+
+    @Test
+    public void shouldEvaluateNotNext() {
+
+    }
+
+    @Test
+    public void shouldEvaluateNotFollowedBy() {
+
     }
 
     private void shouldEvaluateWithinTimeWindowBase(Long secondEventTimeStamp, int expected) throws Exception {

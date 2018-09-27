@@ -1,12 +1,19 @@
 package at.datasciencelabs.pattern;
 
-import org.antlr.v4.runtime.ParserRuleContext;
+import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
+import at.datasciencelabs.pattern.generated.PatternLanguageParser;
+import org.antlr.v4.runtime.Token;
 import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.streaming.api.windowing.time.Time;
 
-import at.datasciencelabs.pattern.generated.PatternLanguageBaseListener;
-import at.datasciencelabs.pattern.generated.PatternLanguageParser;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Stack;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener {
 
@@ -15,49 +22,58 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     private AggregatingContextMatcher orAggregatingContextMatcher;
     private AggregatingContextMatcher currentExpressionList;
     private AggregatingContextMatcher outerContextMatcher;
-    private boolean isFollowedBy;
-    private boolean isFollowedByAny;
     private Quantifier.Builder quantifierBuilder;
-    private boolean isTimeWindow;
     private boolean strictEventTypeMatching;
     private EvaluationCondition stopCondition;
+    private static Map<String,Function<String,AfterMatchSkipStrategy>> skipStrategies;
+    private static Map<String,BiFunction<Integer,Pattern<Event,Event>,Pattern<Event,Event>>> timeWindowAppliers = new HashMap<>();
+    private BiFunction<Pattern<Event,Event>, String, Pattern<Event,Event>> patternCombiner = Pattern::next;
+    private Stack<BiConsumer<FlinkCepPatternLanguageListener, Integer>> numberConstantApplier = new Stack<>();
+    private Stack<BiConsumer<FlinkCepPatternLanguageListener, String>> stringConstantApplier = new Stack<>();
+
+
+    static {
+        skipStrategies = new HashMap<>();
+        skipStrategies.put("NO_SKIP", (m) -> AfterMatchSkipStrategy.noSkip());
+        skipStrategies.put("SKIP_PAST_LAST", (m) -> AfterMatchSkipStrategy.skipPastLastEvent());
+        skipStrategies.put("SKIP_TO_LAST", AfterMatchSkipStrategy::skipToLast);
+        skipStrategies.put("SKIP_TO_FIRST", AfterMatchSkipStrategy::skipToFirst);
+
+        timeWindowAppliers.put("s", (v,p) -> p.within(Time.seconds(v)));
+        timeWindowAppliers.put("h", (v,p) -> p.within(Time.hours(v)));
+        timeWindowAppliers.put("m", (v,p) -> p.within(Time.minutes(v)));
+        timeWindowAppliers.put("ms", (v,p) -> p.within(Time.milliseconds(v)));
+    }
+
+    private String skipStrategyClass;
+    private AfterMatchSkipStrategy afterMatchSkipStrategy = AfterMatchSkipStrategy.noSkip();
 
     FlinkCepPatternLanguageListener(boolean strictEventTypeMatching) {
         this.strictEventTypeMatching = strictEventTypeMatching;
     }
 
     @Override
-    public void enterEveryRule(ParserRuleContext ctx) {
-        super.enterEveryRule(ctx);
+    public void enterPatternExpression(PatternLanguageParser.PatternExpressionContext ctx) {
+        super.enterPatternExpression(ctx);
     }
 
     @Override
-    public void exitEveryRule(ParserRuleContext ctx) {
-        super.exitEveryRule(ctx);
+    public void enterFollowedByOrNext(PatternLanguageParser.FollowedByOrNextContext ctx) {
+        if (ctx.f != null && "!".equals(ctx.f.getText())) {
+            patternCombiner = Pattern::notNext;
+        }
     }
-
-
 
     @Override
     public void enterClassIdentifier(PatternLanguageParser.ClassIdentifierContext ctx) {
-        super.enterClassIdentifier(ctx);
         if (pattern == null) {
-            pattern = Pattern.begin(ctx.getText(), AfterMatchSkipStrategy.noSkip());
+            pattern = Pattern.begin(ctx.getText(), afterMatchSkipStrategy);
         }
         else {
-            if (isFollowedBy) {
-                pattern = pattern.followedBy(ctx.getText());
-            }
-            else if (isFollowedByAny) {
-                pattern = pattern.followedByAny(ctx.getText());
-            }
-            else {
-                pattern = pattern.next(ctx.getText());
-            }
+            pattern = patternCombiner.apply(pattern,ctx.getText());
         }
         outerContextMatcher.add(eventTypeMatcherFor(ctx.getText()));
     }
-
 
     private ContextMatcher eventTypeMatcherFor(String text) {
         return strictEventTypeMatching ?
@@ -67,93 +83,44 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
 
     @Override
     public void exitExpressionList(PatternLanguageParser.ExpressionListContext ctx) {
-        super.exitExpressionList(ctx);
         outerContextMatcher.add(orAggregatingContextMatcher);
     }
 
     @Override
     public void exitStopCondition(PatternLanguageParser.StopConditionContext ctx) {
-        super.exitStopCondition(ctx);
         stopCondition = new EvaluationCondition(orAggregatingContextMatcher);
     }
 
     @Override
     public void enterEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
-        super.enterEvalAndExpression(ctx);
         currentExpressionList = AggregatingContextMatcher.and();
     }
 
     @Override
     public void enterTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
-        super.enterTimeWindow(ctx);
-        if (ctx.u.getText().equals("s")) {
-            pattern = pattern.within(Time.seconds(Integer.parseInt(ctx.c.getText())));
-        }
-        if (ctx.u.getText().endsWith("h")) {
-            pattern = pattern.within(Time.hours(Integer.parseInt(ctx.c.getText())));
-        }
-        if (ctx.u.getText().equals("m")) {
-            pattern = pattern.within(Time.minutes(Integer.parseInt(ctx.c.getText())));
-        }
-        if (ctx.u.getText().equals("ms")) {
-			pattern = pattern.within(Time.milliseconds(Integer.parseInt(ctx.c.getText())));
-		}
-		isTimeWindow = true;
+        pattern = timeWindowAppliers.get(ctx.u.getText()).apply(Integer.parseInt(ctx.c.getText()), pattern);
+		numberConstantApplier.push((l,v) -> {});
     }
 
     @Override
     public void exitTimeWindow(PatternLanguageParser.TimeWindowContext ctx) {
-        super.exitTimeWindow(ctx);
-        isTimeWindow = false;
+        numberConstantApplier.pop();
     }
 
     @Override
     public void exitEvalAndExpression(PatternLanguageParser.EvalAndExpressionContext ctx) {
-        super.exitEvalAndExpression(ctx);
         orAggregatingContextMatcher.add(currentExpressionList);
         currentExpressionList = orAggregatingContextMatcher;
     }
 
     @Override
     public void enterEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
-        super.enterEvalOrExpression(ctx);
         orAggregatingContextMatcher = AggregatingContextMatcher.or();
         currentExpressionList = orAggregatingContextMatcher;
     }
 
     @Override
-    public void exitEvalOrExpression(PatternLanguageParser.EvalOrExpressionContext ctx) {
-        super.exitEvalOrExpression(ctx);
-    }
-
-    @Override
-    public void enterEventProperty(PatternLanguageParser.EventPropertyContext ctx) {
-        super.enterEventProperty(ctx);
-    }
-
-    @Override
-    public void exitEventProperty(PatternLanguageParser.EventPropertyContext ctx) {
-        super.exitEventProperty(ctx);
-    }
-
-    @Override
-    public void enterEventPropertyAtomic(PatternLanguageParser.EventPropertyAtomicContext ctx) {
-        super.enterEventPropertyAtomic(ctx);
-    }
-
-    @Override
-    public void exitEventPropertyAtomic(PatternLanguageParser.EventPropertyAtomicContext ctx) {
-        super.exitEventPropertyAtomic(ctx);
-    }
-
-    @Override
-    public void enterEventPropertyIdent(PatternLanguageParser.EventPropertyIdentContext ctx) {
-        super.enterEventPropertyIdent(ctx);
-    }
-
-    @Override
     public void exitEventPropertyIdent(PatternLanguageParser.EventPropertyIdentContext ctx) {
-        super.exitEventPropertyIdent(ctx);
         if (expression.hasAttribute()) {
             if (expression.hasValueClassIdentiifer()) {
                 expression.setValueAttribute(ctx.getText());
@@ -168,26 +135,13 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     @Override
-    public void enterConstant(PatternLanguageParser.ConstantContext ctx) {
-        super.enterConstant(ctx);
-    }
-
-    @Override
-    public void enterStringconstant(PatternLanguageParser.StringconstantContext ctx) {
-        super.enterStringconstant(ctx);
-    }
-
-
-
-    @Override
     public void exitStringconstant(PatternLanguageParser.StringconstantContext ctx) {
-        super.exitStringconstant(ctx);
-        expression.setValue(ctx.getText().substring(1, ctx.getText().length()-1));
+        String substring = ctx.getText().substring(1, ctx.getText().length() - 1);
+        stringConstantApplier.peek().accept(this, substring);
     }
 
     @Override
     public void exitConstant(PatternLanguageParser.ConstantContext ctx) {
-        super.exitConstant(ctx);
         if ((true+"").equals(ctx.getText())) {
             this.expression.setValue(true);
         }
@@ -196,10 +150,8 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         }
     }
 
-
     @Override
     public void enterEvalEqualsExpression(PatternLanguageParser.EvalEqualsExpressionContext ctx) {
-        super.enterEvalEqualsExpression(ctx);
         this.expression = new Expression();
         if (ctx.eq != null) {
             this.expression.setOperator(Operator.EQUALS);
@@ -207,17 +159,12 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
         if (ctx.ne != null) {
             this.expression.setOperator(Operator.NOT_EQUALS);
         }
-    }
-
-
-    @Override
-    public void enterExpression(PatternLanguageParser.ExpressionContext ctx) {
-        super.enterExpression(ctx);
+        numberConstantApplier.push((t,v) -> t.expression.setValue(v));
+        stringConstantApplier.push((t,v) -> t.expression.setValue(v));
     }
 
     @Override
     public void enterEvalRelationalExpression(PatternLanguageParser.EvalRelationalExpressionContext ctx) {
-        super.enterEvalRelationalExpression(ctx);
         if (ctx.r != null) {
             try {
                 String operatorToken = ctx.r.getText();
@@ -230,141 +177,83 @@ public class FlinkCepPatternLanguageListener extends PatternLanguageBaseListener
     }
 
     @Override
-    public void exitEvalRelationalExpression(PatternLanguageParser.EvalRelationalExpressionContext ctx) {
-        super.exitEvalRelationalExpression(ctx);
-    }
-
-    @Override
     public void exitEvalEqualsExpression(PatternLanguageParser.EvalEqualsExpressionContext ctx) {
-        super.exitEvalEqualsExpression(ctx);
         currentExpressionList.add(expression);
         expression = null;
+        numberConstantApplier.pop();
+        stringConstantApplier.pop();
     }
 
     @Override
     public void enterFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
-        super.enterFollowedBy(ctx);
-        isFollowedBy = true;
+        patternCombiner = Pattern::followedBy;
+    }
+
+    @Override
+    public void enterNotFollowedBy(PatternLanguageParser.NotFollowedByContext ctx) {
+        patternCombiner = Pattern::notFollowedBy;
     }
 
     @Override
     public void enterFollowedByAny(PatternLanguageParser.FollowedByAnyContext ctx) {
-        super.enterFollowedByAny(ctx);
-        isFollowedByAny = true;
-    }
-
-    @Override
-    public void exitFollowedBy(PatternLanguageParser.FollowedByContext ctx) {
-        super.exitFollowedBy(ctx);
+        patternCombiner = Pattern::followedByAny;
     }
 
     @Override
     public void exitNumberconstant(PatternLanguageParser.NumberconstantContext ctx) {
-        super.exitNumberconstant(ctx);
         int timesOrValue = Integer.parseInt(ctx.getText());
-        if (isTimeWindow) {
-            return;
-        }
-        if (this.expression != null) {
-            this.expression.setValue(timesOrValue);
-        }
-        else {
-            quantifierBuilder = quantifierBuilder.bound(timesOrValue);
-        }
-    }
-
-
-
-    @Override
-    public void enterQuantifier(PatternLanguageParser.QuantifierContext ctx) {
-        super.enterQuantifier(ctx);
-
-    }
-
-
-    @Override
-    public void exitQuantifier(PatternLanguageParser.QuantifierContext ctx) {
-        super.exitQuantifier(ctx);
-    }
-
-    @Override
-    public void exitNumber(PatternLanguageParser.NumberContext ctx) {
-        super.exitNumber(ctx);
-    }
-
-    @Override
-    public void enterNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx) {
-        super.enterNumber_quantifier(ctx);
+        numberConstantApplier.peek().accept(this, timesOrValue);
     }
 
     @Override
     public void enterNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx) {
-        super.enterNumber_quantifier_greedy(ctx);
         this.quantifierBuilder = quantifierBuilder.greedy();
     }
 
     @Override
-    public void exitNumber_quantifier(PatternLanguageParser.Number_quantifierContext ctx) {
-        super.exitNumber_quantifier(ctx);
-    }
-
-    @Override
-    public void exitNumber_quantifier_greedy(PatternLanguageParser.Number_quantifier_greedyContext ctx) {
-        super.exitNumber_quantifier_greedy(ctx);
-    }
-
-    @Override
     public void enterPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx) {
-        super.enterPlus_quantifier(ctx);
         quantifierBuilder = quantifierBuilder.oneOrMore();
     }
 
     @Override
-    public void exitPlus_quantifier(PatternLanguageParser.Plus_quantifierContext ctx) {
-        super.exitPlus_quantifier(ctx);
+    public void enterSkipStrategy(PatternLanguageParser.SkipStrategyContext ctx) {
+        stringConstantApplier.push((t,v) -> t.skipStrategyClass = v);
+    }
+
+    @Override
+    public void exitSkipStrategy(PatternLanguageParser.SkipStrategyContext ctx) {
+        stringConstantApplier.pop();
+        String text = Optional.ofNullable(ctx.s).map(Token::getText).orElse("");
+        afterMatchSkipStrategy = skipStrategies.get(text).apply(skipStrategyClass);
     }
 
     @Override
     public void enterStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx) {
-        super.enterStar_quantifier(ctx);
         quantifierBuilder = quantifierBuilder.zeroOrMore();
     }
 
     @Override
-    public void exitStar_quantifier(PatternLanguageParser.Star_quantifierContext ctx) {
-        super.exitStar_quantifier(ctx);
-    }
-
-    @Override
     public void enterPatternFilterExpressionOptional(PatternLanguageParser.PatternFilterExpressionOptionalContext ctx) {
-        super.enterPatternFilterExpressionOptional(ctx);
         this.quantifierBuilder = this.quantifierBuilder.optional();
     }
 
     @Override
     public void enterPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx) {
-        super.enterPatternFilterExpression(ctx);
         this.quantifierBuilder = new Quantifier.Builder();
         this.outerContextMatcher = AggregatingContextMatcher.and();
+        this.numberConstantApplier.push((t,v) -> t.quantifierBuilder = t.quantifierBuilder.bound(v));
     }
 
     @Override
     public void exitPatternFilterExpression(PatternLanguageParser.PatternFilterExpressionContext ctx) {
-        super.exitPatternFilterExpression(ctx);
         pattern = pattern.where(new EvaluationCondition(outerContextMatcher));
         this.pattern = this.quantifierBuilder.build().apply(pattern);
+        this.numberConstantApplier.pop();
     }
 
     @Override
     public void enterUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx) {
-        super.enterUpper_bound_unlimited(ctx);
         this.quantifierBuilder = quantifierBuilder.bound(Integer.MAX_VALUE);
-    }
-
-
-    @Override
-    public void exitUpper_bound_unlimited(PatternLanguageParser.Upper_bound_unlimitedContext ctx) {
-        super.exitUpper_bound_unlimited(ctx);
     }
 
     public Pattern<Event, Event> getPattern() {
