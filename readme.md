@@ -62,8 +62,9 @@ a(attribute >= 30)
 
 ### Data Types
 
-* String 'abc'
-* Integer 30
+* String literals 'abc'
+* Integer literals 30
+* Boolean literals true false
 
 ## Quantifiers
 
@@ -154,7 +155,32 @@ Sensor(temperature > 30)
 
 ```
 Sensor1(temperature > 30) -> Sensor2(temperature > 50 and id=Sensor1.id)
- ```
+```
+ 
+## After Match Skip Strategies
+
+* No Skip
+```
+%NO_SKIP
+A+(attribute='testabc') B(attribute=30)
+```
+* Skip Past Last
+```
+%SKIP_PAST_LAST
+A+(attribute='testabc') B(attribute=30)
+```
+* Skip to Last
+```
+%SKIP_TO_LAST['A']
+A+(attribute='testabc') B(attribute=30)
+```
+* Skip To First
+```
+%SKIP_TO_FIRST['A']
+A+(attribute='testabc') B(attribute=30)
+```
+
+For details regarding semantics refer to https://ci.apache.org/projects/flink/flink-docs-stable/dev/libs/cep.html#after-match-skip-strategy
  
 ## Known Issues
  
@@ -168,7 +194,7 @@ TransportStarted(destination = 'Vienna') LocationUpdate{1,+}?(destination=Transp
 
 Does not Work
 ```
-LocationUpdate{1,+}?(destination=TransportStarted.destination) TransportEnded(destination=TransportStarted.destination)
+LocationUpdate{1,+}? TransportEnded(destination=LocationUpdate.destination)
 ```
 
 See https://issues.apache.org/jira/browse/FLINK-8914 for details.
